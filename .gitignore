@@ -17,3 +17,4 @@
 
 # Environment
 .env
+*.zip

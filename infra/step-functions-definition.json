@@ -1,0 +1,156 @@
+{
+  "Comment": "ACE Quote System — DynamoDB + Bedrock AI + SES emails",
+  "StartAt": "GenerateQuoteId",
+  "States": {
+    "GenerateQuoteId": {
+      "Type": "Pass",
+      "Parameters": {
+        "quoteId.$": "States.UUID()",
+        "input.$": "$"
+      },
+      "Next": "SaveToDynamoDB"
+    },
+    "SaveToDynamoDB": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Parameters": {
+        "TableName": "ACE-Quotes",
+        "Item": {
+          "quoteId": { "S.$": "$.quoteId" },
+          "submittedAt": { "S.$": "$.input.submittedAt" },
+          "status": { "S": "pending" },
+          "customerName": { "S.$": "States.Format('{} {}', $.input.firstName, $.input.lastName)" },
+          "customerEmail": { "S.$": "$.input.email" },
+          "customerPhone": { "S.$": "$.input.phone" },
+          "organization": { "S.$": "$.input.organization" },
+          "eventType": { "S.$": "$.input.eventType" },
+          "eventDate": { "S.$": "$.input.eventDate" },
+          "startTime": { "S.$": "$.input.startTime" },
+          "endTime": { "S.$": "$.input.endTime" },
+          "services": { "S.$": "States.JsonToString($.input.services)" },
+          "genre": { "S.$": "$.input.genre" },
+          "speeches": { "S.$": "$.input.speeches" },
+          "budget": { "S.$": "$.input.budget" },
+          "venueName": { "S.$": "$.input.venueName" },
+          "venueAddress": { "S.$": "$.input.venueAddress" },
+          "roomName": { "S.$": "$.input.roomName" },
+          "floorAccess": { "S.$": "$.input.floorAccess" },
+          "indoorOutdoor": { "S.$": "$.input.indoorOutdoor" },
+          "roomSize": { "S.$": "$.input.roomSize" },
+          "powerAvailability": { "S.$": "$.input.powerAvailability" },
+          "loadInTime": { "S.$": "$.input.loadInTime" },
+          "micWireless": { "S.$": "$.input.micWireless" },
+          "micWired": { "S.$": "$.input.micWired" },
+          "auxInputs": { "S.$": "$.input.auxInputs" },
+          "monitorSpeakers": { "S.$": "$.input.monitorSpeakers" },
+          "additionalNotes": { "S.$": "$.input.additionalNotes" },
+          "howHeard": { "S.$": "$.input.howHeard" },
+          "source": { "S.$": "$.input.source" }
+        }
+      },
+      "ResultPath": "$.dynamoResult",
+      "Next": "CallBedrock"
+    },
+    "CallBedrock": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Parameters": {
+        "ModelId": "anthropic.claude-haiku-4-5-20251001-v1:0",
+        "ContentType": "application/json",
+        "Accept": "application/json",
+        "Body": {
+          "anthropic_version": "bedrock-2023-05-31",
+          "max_tokens": 2000,
+          "messages": [
+            {
+              "role": "user",
+              "content.$": "States.Format('You are the AI sales assistant for Atlanta Creative Exchange (ACE), an audio production, DJ, PA system, live music, and event hosting company based in Atlanta, Georgia.\n\nA customer has submitted a quote request. Using the pricing guide and event details below, provide:\n\n1. RECOMMENDED QUOTE RANGE — A specific dollar range for this event based on their services, room size, duration, and equipment needs. Break it down by line item. Show a low estimate and high estimate.\n\n2. TAILORED FOLLOW-UP QUESTIONS — 5-8 intelligent questions specific to THIS event that the sales team should ask on the follow-up call.\n\n3. EVENT ANALYSIS — Brief assessment: complexity level, potential challenges, recommended approach.\n\n4. UPSELL OPPORTUNITIES — Additional services that would make sense for this event.\n\nPRICING GUIDE:\nPA System Only (flat per day): Small (up to 30): $250-$400 | Small-Medium (30-75): $400-$700 | Medium (75-200): $1,000-$2,000 | Medium-Large (200-500): $2,500-$3,500 | Large (500+): $3,500-$5,000\nDJ (flat 4hrs, includes basic PA): Small: $400-$600 | Small-Medium: $700-$1,200 | Medium: $1,500-$2,500 | Medium-Large: $3,500-$4,500 | Large: $4,500-$6,000\nOvertime: $150-$200/hr. Upgraded PA add-on: $300-$800. Wireless mic: $40-$60/day. Wired mic: $15-$25/day. Monitor: $75-$100/day. Sound tech: $50-$75/hr.\nLive Bands: Solo/Duo $500-$1,200 | Small band $1,000-$2,000 | Medium venue $2,000-$4,000 | Med-Large $4,000-$6,000 | Large $6,000-$10,000\nEvent Hosting: Coordination $500-$1,000 | MC $300-$600 | Crowd support $25-$40/hr/person\nBundles: DJ+PA upgrade 15% off | Full package 20% off | Repeat client 10% off\nDeposit required to secure date. Remaining balance due within 24hrs of event completion.\n\nEVENT DETAILS:\nType: {} | Date: {} | Time: {} to {} | Services: {} | Genre: {} | Speeches: {} | Budget: {}\nVenue: {} at {} | Room: {} | Floor: {} | Indoor/Outdoor: {} | Size: {} | Power: {} | Load-in: {}\nEquipment: {} wireless mics, {} wired mics | Aux: {} | Monitors: {} | Notes: {}\nContact: {} {} | Org: {} | How heard: {}\n\nFormat your response clearly with headers and bullet points. Be specific with dollar amounts.', $.input.eventType, $.input.eventDate, $.input.startTime, $.input.endTime, States.JsonToString($.input.services), $.input.genre, $.input.speeches, $.input.budget, $.input.venueName, $.input.venueAddress, $.input.roomName, $.input.floorAccess, $.input.indoorOutdoor, $.input.roomSize, $.input.powerAvailability, $.input.loadInTime, $.input.micWireless, $.input.micWired, $.input.auxInputs, $.input.monitorSpeakers, $.input.additionalNotes, $.input.firstName, $.input.lastName, $.input.organization, $.input.howHeard)"
+            }
+          ]
+        }
+      },
+      "ResultSelector": {
+        "aiAnalysis.$": "$.Body.content[0].text"
+      },
+      "ResultPath": "$.bedrockResult",
+      "Next": "SendOwnerEmail",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.bedrockResult",
+          "Next": "SendOwnerEmailNoAI"
+        }
+      ]
+    },
+    "SendOwnerEmail": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ses:sendEmail",
+      "Parameters": {
+        "Source": "wilson.danny@me.com",
+        "Destination": {
+          "ToAddresses": ["wilson.danny@me.com"]
+        },
+        "Message": {
+          "Subject": {
+            "Data.$": "States.Format('[ACE Quote] {} — {} {} — {}', $.input.eventType, $.input.firstName, $.input.lastName, $.input.eventDate)"
+          },
+          "Body": {
+            "Html": {
+              "Data.$": "States.Format('<h1>New Quote Request</h1><p>Quote ID: {}</p><h2>Customer</h2><p>Name: {} {}<br>Email: {}<br>Phone: {}<br>Org: {}</p><h2>Event</h2><p>Type: {}<br>Date: {}<br>Time: {} - {}<br>Services: {}<br>Genre: {}<br>Speeches: {}<br>Budget: {}</p><h2>Venue</h2><p>Venue: {}<br>Address: {}<br>Room: {}<br>Floor: {}<br>Indoor/Outdoor: {}<br>Size: {}<br>Power: {}<br>Load-in: {}</p><h2>Equipment</h2><p>Wireless Mics: {}<br>Wired Mics: {}<br>Aux: {}<br>Monitors: {}<br>Notes: {}</p><h2>AI Quote Analysis</h2><pre>{}</pre>', $.quoteId, $.input.firstName, $.input.lastName, $.input.email, $.input.phone, $.input.organization, $.input.eventType, $.input.eventDate, $.input.startTime, $.input.endTime, States.JsonToString($.input.services), $.input.genre, $.input.speeches, $.input.budget, $.input.venueName, $.input.venueAddress, $.input.roomName, $.input.floorAccess, $.input.indoorOutdoor, $.input.roomSize, $.input.powerAvailability, $.input.loadInTime, $.input.micWireless, $.input.micWired, $.input.auxInputs, $.input.monitorSpeakers, $.input.additionalNotes, $.bedrockResult.aiAnalysis)"
+            }
+          }
+        }
+      },
+      "ResultPath": "$.ownerEmailResult",
+      "Next": "SendCustomerEmail"
+    },
+    "SendOwnerEmailNoAI": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ses:sendEmail",
+      "Parameters": {
+        "Source": "wilson.danny@me.com",
+        "Destination": {
+          "ToAddresses": ["wilson.danny@me.com"]
+        },
+        "Message": {
+          "Subject": {
+            "Data.$": "States.Format('[ACE Quote] {} — {} {} — {}', $.input.eventType, $.input.firstName, $.input.lastName, $.input.eventDate)"
+          },
+          "Body": {
+            "Html": {
+              "Data.$": "States.Format('<h1>New Quote Request</h1><p>Quote ID: {}</p><p><strong>AI Analysis unavailable — review manually.</strong></p><h2>Customer</h2><p>Name: {} {}<br>Email: {}<br>Phone: {}<br>Org: {}</p><h2>Event</h2><p>Type: {}<br>Date: {}<br>Time: {} - {}<br>Services: {}<br>Genre: {}<br>Speeches: {}<br>Budget: {}</p><h2>Venue</h2><p>Venue: {}<br>Address: {}<br>Room: {}<br>Floor: {}<br>Indoor/Outdoor: {}<br>Size: {}<br>Power: {}<br>Load-in: {}</p><h2>Equipment</h2><p>Wireless Mics: {}<br>Wired Mics: {}<br>Aux: {}<br>Monitors: {}<br>Notes: {}</p>', $.quoteId, $.input.firstName, $.input.lastName, $.input.email, $.input.phone, $.input.organization, $.input.eventType, $.input.eventDate, $.input.startTime, $.input.endTime, States.JsonToString($.input.services), $.input.genre, $.input.speeches, $.input.budget, $.input.venueName, $.input.venueAddress, $.input.roomName, $.input.floorAccess, $.input.indoorOutdoor, $.input.roomSize, $.input.powerAvailability, $.input.loadInTime, $.input.micWireless, $.input.micWired, $.input.auxInputs, $.input.monitorSpeakers, $.input.additionalNotes)"
+            }
+          }
+        }
+      },
+      "ResultPath": "$.ownerEmailResult",
+      "Next": "SendCustomerEmail"
+    },
+    "SendCustomerEmail": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ses:sendEmail",
+      "Parameters": {
+        "Source": "wilson.danny@me.com",
+        "Destination": {
+          "ToAddresses.$": "States.Array($.input.email)"
+        },
+        "Message": {
+          "Subject": {
+            "Data": "Your ACE Quote Request — We'll be in touch soon!"
+          },
+          "Body": {
+            "Html": {
+              "Data.$": "States.Format('<h1>Thanks, {}!</h1><p>We received your quote request and a member of our sales team will reach out within <strong>24 hours</strong> with a personalized quote or any follow-up questions.</p><h3>What you submitted:</h3><p>Event: {}<br>Date: {}<br>Time: {} - {}<br>Services: {}<br>Venue: {}<br>Size: {}</p><p><strong>Payment Terms:</strong> A deposit is required to secure your date. The remaining balance is due within 24 hours of event completion. We will provide full payment details with your quote.</p><p>If you have questions, reply to this email or reach us at wilson.danny@me.com.</p><p>— The ACE Team</p><hr><p style=\"font-size:12px\">Atlanta Creative Exchange | Atlanta, Georgia | atlantacreativeexchange.com</p>', $.input.firstName, $.input.eventType, $.input.eventDate, $.input.startTime, $.input.endTime, States.JsonToString($.input.services), $.input.venueName, $.input.roomSize)"
+            }
+          }
+        }
+      },
+      "ResultPath": "$.customerEmailResult",
+      "Next": "Success"
+    },
+    "Success": {
+      "Type": "Succeed",
+      "OutputPath": "$.quoteId"
+    }
+  }
+}

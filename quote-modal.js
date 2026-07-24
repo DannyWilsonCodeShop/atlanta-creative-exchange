@@ -9,7 +9,7 @@
 
     // === CONFIG ===
     // This will be replaced after deploying the backend
-    const API_ENDPOINT = '%%API_ENDPOINT%%';
+    const API_ENDPOINT = 'https://zuq0ae5dqf.execute-api.us-east-1.amazonaws.com';
 
     // === DOM REFS ===
     const overlay = document.getElementById('quoteOverlay');
@@ -206,6 +206,10 @@
             });
 
             if (!response.ok) throw new Error('Server error');
+
+            const result = await response.json();
+            // Step Functions sync execution wraps output
+            if (result.status === 'FAILED') throw new Error('Execution failed');
 
             // Show success
             document.querySelectorAll('.quote-step').forEach(s => s.classList.remove('active'));
