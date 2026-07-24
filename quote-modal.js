@@ -378,9 +378,14 @@
             if (hostSection) hostSection.style.display = hostingOnly ? 'block' : 'none';
             if (bandTypeGroup) bandTypeGroup.style.display = selectedServices.includes('Live Band') ? 'block' : 'none';
 
-            // If both PA and DJ/Band selected, show both
+            // Monitors only for PA-only (no DJ/Band)
+            const monitorsGroup = document.getElementById('monitorsGroup');
+            if (monitorsGroup) monitorsGroup.style.display = hasPAOnly ? 'block' : 'none';
+
+            // If both PA and DJ/Band selected, show PA section but hide monitors
             if (selectedServices.includes('PA System') && hasDJOrBand) {
                 if (paSection) paSection.style.display = 'block';
+                if (monitorsGroup) monitorsGroup.style.display = 'none';
             }
         }
 
