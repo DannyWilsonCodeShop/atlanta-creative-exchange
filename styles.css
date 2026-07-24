@@ -1435,36 +1435,45 @@ section {
         display: flex;
     }
 
-    /* Pillars section — compact on mobile */
+    /* Pillars section — hidden on mobile, services IS the hero */
     .pillars {
-        padding: 60px 0;
+        display: none;
     }
 
-    .pillars-intro {
-        margin-bottom: 32px;
+    .hero {
+        display: none;
     }
 
-    .pillars-lead {
-        font-size: 1.1rem;
+    .services {
+        padding-top: 100px;
+        margin-top: 72px;
     }
 
-    .pillars-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
+    .services .section-title {
+        font-size: 2rem;
+        background: var(--gradient-brand);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 
-    .pillar {
-        padding: 20px 14px;
+    .services .section-subtitle {
+        font-size: 1rem;
+        margin-bottom: 12px;
     }
 
-    .pillar-word {
-        font-size: 1.3rem;
-        margin-bottom: 8px;
-    }
-
-    .pillar p {
-        font-size: 0.8rem;
-        line-height: 1.5;
+    /* Mobile vision tagline above services */
+    .services::before {
+        content: 'A hub for cultural and self expression through music, art, and technology.';
+        display: block;
+        font-family: var(--font-display);
+        font-style: italic;
+        font-size: 1rem;
+        color: var(--color-text-muted);
+        text-align: center;
+        max-width: 320px;
+        margin: 0 auto 32px;
+        line-height: 1.6;
     }
 
     .hero {
@@ -2713,5 +2722,23 @@ section {
     .email-list-modal {
         width: 95%;
         padding: 28px 20px;
+    }
+}
+
+/* --- Mobile hero CTA (hidden on desktop) --- */
+.mobile-hero-cta {
+    display: none;
+}
+
+@media (max-width: 580px) {
+    .mobile-hero-cta {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 40px;
+    }
+
+    .mobile-hero-cta .btn {
+        width: 100%;
+        max-width: 300px;
     }
 }
