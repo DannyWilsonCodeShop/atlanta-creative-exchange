@@ -10,6 +10,7 @@ import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+import { PinpointSMSVoiceV2Client, SendTextMessageCommand } from '@aws-sdk/client-pinpoint-sms-voice-v2';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { randomUUID } from 'crypto';
 
@@ -25,10 +26,11 @@ const dynamoRaw = new DynamoDBClient({ region: REGION });
 const dynamo = dynamoRaw;
 const docClient = DynamoDBDocumentClient.from(dynamoRaw);
 const ses = new SESClient({ region: REGION });
-const sns = new SNSClient({ region: REGION });
+const sms = new PinpointSMSVoiceV2Client({ region: REGION });
 const bedrock = new BedrockRuntimeClient({ region: REGION });
 
 const OWNER_PHONE = process.env.OWNER_PHONE || '+14048037330';
+const ORIGINATION_NUMBER = '+18552432682';
 
 // === PRICING GUIDE (baked in for Bedrock prompt) ===
 const PRICING_GUIDE = `
@@ -539,16 +541,17 @@ async function sendSmsNotification(data) {
         ? `Digital: ${(data.digitalServices || []).join(', ')}`
         : `Event: ${data.eventType || 'Unknown'}`;
 
-    const message = `🎵 New ACE Quote!\n${data.firstName} ${data.lastName}\n${serviceLabel}\n${isDigital ? '' : `Venue: ${data.venueName || 'TBD'}\nSize: ${data.roomSize || 'TBD'}\n`}Budget: ${data.budget || data.digitalBudget || 'Not disclosed'}\nCheck admin portal for details.`;
+    const message = `New ACE Quote! ${data.firstName} ${data.lastName} - ${serviceLabel}. Budget: ${data.budget || data.digitalBudget || 'N/A'}. Check admin portal.`;
 
     try {
-        await sns.send(new PublishCommand({
-            PhoneNumber: OWNER_PHONE,
-            Message: message,
+        await sms.send(new SendTextMessageCommand({
+            DestinationPhoneNumber: OWNER_PHONE,
+            OriginationIdentity: ORIGINATION_NUMBER,
+            MessageBody: message,
         }));
+        console.log('SMS sent successfully to', OWNER_PHONE);
     } catch (err) {
         console.error('SMS notification failed:', err);
-        // Don't throw — SMS is non-critical
     }
 }
 
