@@ -1435,6 +1435,38 @@ section {
         display: flex;
     }
 
+    /* Pillars section — compact on mobile */
+    .pillars {
+        padding: 60px 0;
+    }
+
+    .pillars-intro {
+        margin-bottom: 32px;
+    }
+
+    .pillars-lead {
+        font-size: 1.1rem;
+    }
+
+    .pillars-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .pillar {
+        padding: 20px 14px;
+    }
+
+    .pillar-word {
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+    }
+
+    .pillar p {
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
     .hero {
         min-height: 50vh;
         padding: 0 0 40px;
