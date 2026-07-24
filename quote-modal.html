@@ -54,40 +54,58 @@
             <!-- ============ EVENT PATH ============ -->
 
             <!-- Step 1: Event Details -->
-            <div class="quote-step" id="step1">>
+            <div class="quote-step" id="step1">
                 <h3>Event Details</h3>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="q-event-type">Event Type *</label>
-                        <select id="q-event-type" name="eventType" required>
-                            <option value="">Select event type</option>
-                            <option value="Wedding">Wedding</option>
-                            <option value="Corporate">Corporate Event</option>
-                            <option value="Birthday">Birthday / Celebration</option>
-                            <option value="Festival">Festival</option>
-                            <option value="Community">Community Event</option>
-                            <option value="Concert">Concert / Live Show</option>
-                            <option value="Church">Church / Religious</option>
-                            <option value="School">School Event</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="q-event-date">Event Date *</label>
-                        <input type="date" id="q-event-date" name="eventDate" required>
-                    </div>
+                <div class="form-group">
+                    <label for="q-event-type">Event Type *</label>
+                    <select id="q-event-type" name="eventType" required>
+                        <option value="">Select event type</option>
+                        <option value="Wedding">Wedding</option>
+                        <option value="Corporate">Corporate Event</option>
+                        <option value="Birthday">Birthday / Celebration</option>
+                        <option value="Festival">Festival</option>
+                        <option value="Community">Community Event</option>
+                        <option value="Concert">Concert / Live Show</option>
+                        <option value="Church">Church / Religious</option>
+                        <option value="School">School Event</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="q-start-time">Start Time *</label>
-                        <input type="time" id="q-start-time" name="startTime" required>
+                <!-- Event Dates (repeatable) -->
+                <div class="event-dates-section">
+                    <label class="event-dates-label">Event Date(s) & Time(s) *</label>
+                    <div id="eventDatesContainer">
+                        <div class="event-date-block" data-index="0">
+                            <div class="event-date-header">
+                                <span class="event-date-num">Day 1</span>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" name="eventDates[0].date" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Start Time *</label>
+                                    <input type="time" name="eventDates[0].startTime" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>End Time *</label>
+                                    <input type="time" name="eventDates[0].endTime" required>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="q-end-time">End Time *</label>
-                        <input type="time" id="q-end-time" name="endTime" required>
-                    </div>
+                    <button type="button" class="btn-add-date" id="addEventDate">+ Add another date</button>
+                </div>
+
+                <!-- Same services checkbox -->
+                <div class="form-group same-services-group" id="sameServicesGroup" style="display:none;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sameServicesCheck" name="sameServicesAllDates" checked>
+                        Same services needed for all dates
+                    </label>
                 </div>
 
                 <div class="form-group">

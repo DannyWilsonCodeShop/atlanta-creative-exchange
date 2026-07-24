@@ -56,6 +56,56 @@
     // Expose globally so buttons can trigger it
     window.openQuoteModal = openModal;
 
+    // === MULTI-DATE EVENT HANDLING ===
+    let eventDateCount = 1;
+    const eventDatesContainer = document.getElementById('eventDatesContainer');
+    const addEventDateBtn = document.getElementById('addEventDate');
+    const sameServicesGroup = document.getElementById('sameServicesGroup');
+
+    if (addEventDateBtn) {
+        addEventDateBtn.addEventListener('click', () => {
+            eventDateCount++;
+            const block = document.createElement('div');
+            block.className = 'event-date-block';
+            block.dataset.index = eventDateCount - 1;
+            block.innerHTML = `
+                <div class="event-date-header">
+                    <span class="event-date-num">Day ${eventDateCount}</span>
+                    <button type="button" class="btn-remove-date" onclick="this.closest('.event-date-block').remove(); updateDateNumbers();">Remove</button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date *</label>
+                        <input type="date" name="eventDates[${eventDateCount - 1}].date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Time *</label>
+                        <input type="time" name="eventDates[${eventDateCount - 1}].startTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Time *</label>
+                        <input type="time" name="eventDates[${eventDateCount - 1}].endTime" required>
+                    </div>
+                </div>
+            `;
+            eventDatesContainer.appendChild(block);
+            // Show "same services" checkbox when multiple dates
+            sameServicesGroup.style.display = 'block';
+        });
+    }
+
+    // Update day numbers after removal
+    window.updateDateNumbers = function() {
+        const blocks = eventDatesContainer.querySelectorAll('.event-date-block');
+        eventDateCount = blocks.length;
+        blocks.forEach((block, i) => {
+            block.querySelector('.event-date-num').textContent = `Day ${i + 1}`;
+        });
+        if (eventDateCount <= 1) {
+            sameServicesGroup.style.display = 'none';
+        }
+    };
+
     // === SERVICE TYPE BRANCHING ===
     const serviceTypeNext = document.getElementById('serviceTypeNext');
     serviceTypeNext.addEventListener('click', () => {
@@ -224,9 +274,12 @@
             formData = {
                 serviceType: 'event',
                 eventType: form.querySelector('[name="eventType"]').value,
-                eventDate: form.querySelector('[name="eventDate"]').value,
-                startTime: form.querySelector('[name="startTime"]').value,
-                endTime: form.querySelector('[name="endTime"]').value,
+                eventDates: Array.from(eventDatesContainer.querySelectorAll('.event-date-block')).map((block, i) => ({
+                    date: block.querySelector(`[name="eventDates[${i}].date"]`)?.value || block.querySelector('input[type="date"]').value,
+                    startTime: block.querySelector(`[name="eventDates[${i}].startTime"]`)?.value || block.querySelectorAll('input[type="time"]')[0].value,
+                    endTime: block.querySelector(`[name="eventDates[${i}].endTime"]`)?.value || block.querySelectorAll('input[type="time"]')[1].value
+                })),
+                sameServicesAllDates: form.querySelector('[name="sameServicesAllDates"]')?.checked || true,
                 services: Array.from(form.querySelectorAll('[name="services"]:checked')).map(c => c.value),
                 genre: form.querySelector('[name="genre"]').value || '',
                 speeches: form.querySelector('[name="speeches"]').value,

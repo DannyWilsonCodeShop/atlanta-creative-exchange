@@ -2811,3 +2811,91 @@ section {
         display: none;
     }
 }
+
+/* --- Multi-date event blocks --- */
+.event-dates-section {
+    margin-bottom: 20px;
+}
+
+.event-dates-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin-bottom: 12px;
+}
+
+.event-date-block {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+}
+
+.event-date-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.event-date-num {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-cyan);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-remove-date {
+    background: none;
+    border: none;
+    color: var(--color-magenta);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background var(--transition);
+}
+
+.btn-remove-date:hover {
+    background: rgba(233, 30, 140, 0.1);
+}
+
+.event-date-block .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.btn-add-date {
+    background: none;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    font-family: var(--font-main);
+    padding: 12px;
+    width: 100%;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btn-add-date:hover {
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+}
+
+.same-services-group {
+    padding: 12px 16px;
+    background: rgba(123, 47, 247, 0.05);
+    border: 1px solid rgba(123, 47, 247, 0.15);
+    border-radius: var(--radius-sm);
+}
+
+@media (max-width: 580px) {
+    .event-date-block .form-row {
+        grid-template-columns: 1fr;
+    }
+}

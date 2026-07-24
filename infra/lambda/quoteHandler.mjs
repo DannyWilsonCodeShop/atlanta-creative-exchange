@@ -171,9 +171,8 @@ async function saveQuote(quoteId, data) {
         item.digitalNotes = { S: data.digitalNotes || '' };
     } else {
         item.eventType = { S: data.eventType || '' };
-        item.eventDate = { S: data.eventDate || '' };
-        item.startTime = { S: data.startTime || '' };
-        item.endTime = { S: data.endTime || '' };
+        item.eventDates = { S: JSON.stringify(data.eventDates || []) };
+        item.sameServicesAllDates = { S: String(data.sameServicesAllDates || true) };
         item.services = { S: JSON.stringify(data.services || []) };
         item.genre = { S: data.genre || '' };
         item.speeches = { S: data.speeches || '' };
@@ -243,9 +242,10 @@ Format your response clearly with headers and bullet points. Be specific with do
         eventSummary = `
 EVENT DETAILS:
 - Type: ${data.eventType}
-- Date: ${data.eventDate}
-- Time: ${data.startTime} to ${data.endTime}
-- Services Requested: ${data.services.join(', ')}
+- Dates: ${(data.eventDates || []).map((d, i) => `Day ${i+1}: ${d.date} (${d.startTime} to ${d.endTime})`).join('; ')}
+- Number of days: ${(data.eventDates || []).length}
+- Same services all dates: ${data.sameServicesAllDates}
+- Services Requested: ${(data.services || []).join(', ')}
 - Genre Preferences: ${data.genre || 'None specified'}
 - Speeches/Toasts: ${data.speeches || 'Not specified'}
 - Budget: ${data.budget || 'Not disclosed'}
@@ -319,7 +319,8 @@ Format your response clearly with headers and bullet points. Be specific with do
 
 // === OWNER EMAIL ===
 async function sendOwnerEmail(quoteId, data, aiAnalysis) {
-    const duration = calculateDuration(data.startTime, data.endTime);
+    const datesDisplay = (data.eventDates || []).map((d, i) => `Day ${i+1}: ${d.date} (${d.startTime} – ${d.endTime})`).join('<br>');
+    const firstDate = (data.eventDates && data.eventDates[0]) ? data.eventDates[0].date : 'TBD';
 
     const htmlBody = `
 <html>
@@ -341,8 +342,8 @@ async function sendOwnerEmail(quoteId, data, aiAnalysis) {
 <h2 style="color: #00b4d8; border-bottom: 1px solid #333; padding-bottom: 8px;">Event Details</h2>
 <table style="width: 100%; color: #f0f0f0; margin-bottom: 24px;">
 <tr><td style="color:#a0a0a0;padding:4px 0;">Type:</td><td>${data.eventType}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Date:</td><td>${data.eventDate}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Time:</td><td>${data.startTime} – ${data.endTime} (${duration})</td></tr>
+<tr><td style="color:#a0a0a0;padding:4px 0;">Date(s):</td><td>${datesDisplay}</td></tr>
+<tr><td style="color:#a0a0a0;padding:4px 0;">Same services all dates:</td><td>${data.sameServicesAllDates ? 'Yes' : 'No'}</td></tr>
 <tr><td style="color:#a0a0a0;padding:4px 0;">Services:</td><td><strong>${data.services.join(', ')}</strong></td></tr>
 <tr><td style="color:#a0a0a0;padding:4px 0;">Genre:</td><td>${data.genre || 'Not specified'}</td></tr>
 <tr><td style="color:#a0a0a0;padding:4px 0;">Speeches:</td><td>${data.speeches || 'Not specified'}</td></tr>
@@ -385,7 +386,7 @@ ${aiAnalysis}
         ReplyToAddresses: [REPLY_TO_EMAIL],
         Destination: { ToAddresses: [OWNER_EMAIL] },
         Message: {
-            Subject: { Data: `[ACE Quote] ${data.eventType} — ${data.firstName} ${data.lastName} — ${data.eventDate}` },
+            Subject: { Data: `[ACE Quote] ${data.eventType} — ${data.firstName} ${data.lastName} — ${firstDate}` },
             Body: { Html: { Data: htmlBody } }
         }
     }));
@@ -406,8 +407,7 @@ async function sendCustomerConfirmation(data) {
 <div style="background: #f0f0f0; border-radius: 8px; padding: 20px; margin: 24px 0;">
 <h3 style="font-size: 14px; color: #333; margin-bottom: 12px;">Here's what you submitted:</h3>
 <p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Event:</strong> ${data.eventType}</p>
-<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Date:</strong> ${data.eventDate}</p>
-<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Time:</strong> ${data.startTime} – ${data.endTime}</p>
+<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Date(s):</strong> ${(data.eventDates || []).map(d => d.date).join(', ')}</p>
 <p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Services:</strong> ${data.services.join(', ')}</p>
 <p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Venue:</strong> ${data.venueName}</p>
 <p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Size:</strong> ${data.roomSize}</p>
