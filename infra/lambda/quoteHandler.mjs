@@ -16,7 +16,7 @@ const TABLE_NAME = process.env.TABLE_NAME || 'ACE-Quotes';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'wilson.danny@me.com';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'wilson.danny@me.com';
 const REPLY_TO_EMAIL = 'info@atlantacreativeexchange.com';
-const BEDROCK_MODEL_ID = 'anthropic.claude-haiku-4-5-20251001-v1:0';
+const BEDROCK_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 
 const dynamo = new DynamoDBClient({ region: REGION });
 const ses = new SESClient({ region: REGION });
