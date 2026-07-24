@@ -1436,7 +1436,14 @@ section {
     }
 
     .hero {
-        min-height: 60vh;
+        min-height: 50vh;
+        padding: 0 0 40px;
+    }
+
+    .hero-bg img {
+        object-fit: contain;
+        object-position: center top;
+        background-color: var(--color-bg);
     }
 
     .hero-b {
@@ -2468,5 +2475,41 @@ section {
 @media (max-width: 480px) {
     .service-type-cards {
         grid-template-columns: 1fr;
+    }
+}
+
+/* --- Mobile hero & general fixes --- */
+@media (max-width: 580px) {
+    .hero-bg {
+        background-color: var(--color-bg);
+    }
+
+    .hero-cta .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .digital-feature {
+        padding: 60px 0;
+    }
+
+    .digital-feature-content h2 {
+        font-size: 1.5rem;
+    }
+
+    .digital-feature-content p {
+        font-size: 0.95rem;
+    }
+
+    .pillar-word {
+        font-size: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 1.6rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.95rem;
     }
 }
