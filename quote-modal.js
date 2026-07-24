@@ -111,12 +111,18 @@
 
     // Update step 1 next button target based on same-services checkbox
     function updateStep1NextTarget() {
+        const servicesGroup = document.getElementById('servicesGroup');
+        const genreGroup = document.getElementById('genreGroup');
         if (eventDateCount > 1 && sameServicesCheck && !sameServicesCheck.checked) {
             step1NextBtn.dataset.next = '1b';
             step1NextBtn.textContent = 'Next: Per-Day Details';
+            // Hide services on step 1 — they'll pick per day
+            if (servicesGroup) servicesGroup.style.display = 'none';
+            if (genreGroup) genreGroup.style.display = 'none';
         } else {
             step1NextBtn.dataset.next = '2';
             step1NextBtn.textContent = 'Next: Venue Details';
+            if (servicesGroup) servicesGroup.style.display = 'block';
         }
     }
 
@@ -140,40 +146,89 @@
                     <strong>Day ${i + 1}</strong> — ${dateVal || 'Date not set'}
                 </div>
                 <div class="form-group">
-                    <label>Services needed this day</label>
+                    <label>Services needed this day *</label>
                     <div class="checkbox-group">
-                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="DJ"> DJ</label>
-                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="PA System"> PA System</label>
-                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="Live Band"> Live Band</label>
-                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="Event Hosting"> Event Hosting</label>
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="DJ" onchange="updatePerDayQuestions(${i})"> DJ</label>
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="PA System" onchange="updatePerDayQuestions(${i})"> PA System</label>
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="Live Band" onchange="updatePerDayQuestions(${i})"> Live Band</label>
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="Event Hosting" onchange="updatePerDayQuestions(${i})"> Event Hosting</label>
                     </div>
+                    <small class="form-note">Note: DJ includes basic PA. 1 wireless mic included for organizer announcements.</small>
                 </div>
+                <div id="perDayExtra-${i}"></div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Dynamically show questions based on per-day service selections
+    window.updatePerDayQuestions = function(dayIndex) {
+        const card = document.querySelectorAll('.per-day-card')[dayIndex];
+        if (!card) return;
+        const selected = Array.from(card.querySelectorAll(`[name="perDay[${dayIndex}].services"]:checked`)).map(c => c.value);
+        const extraDiv = document.getElementById(`perDayExtra-${dayIndex}`);
+        if (!extraDiv) return;
+
+        let html = '';
+
+        // DJ or Live Band: genre + band type
+        if (selected.includes('DJ') || selected.includes('Live Band')) {
+            html += `
+                <div class="form-group">
+                    <label>Genre / Vibe</label>
+                    <input type="text" name="perDay[${dayIndex}].genre" placeholder="e.g. R&B, Hip-Hop, Jazz, Top 40">
+                </div>
+            `;
+            if (selected.includes('Live Band')) {
+                html += `
+                    <div class="form-group">
+                        <label>Type of Live Music</label>
+                        <select name="perDay[${dayIndex}].bandType">
+                            <option value="">Select</option>
+                            <option value="Instrumental">Instrumental (no vocals)</option>
+                            <option value="Full Show">Full show (vocals + instruments)</option>
+                            <option value="Acoustic">Acoustic / unplugged</option>
+                            <option value="DJ + Live">DJ + live musicians together</option>
+                        </select>
+                    </div>
+                `;
+            }
+        }
+
+        // PA System only (no DJ/Band): full mic/equipment questions
+        if (selected.includes('PA System') && !selected.includes('DJ') && !selected.includes('Live Band')) {
+            html += `
                 <div class="form-row">
                     <div class="form-group">
                         <label>Wireless Mics ($$)</label>
-                        <select name="perDay[${i}].micWireless">
+                        <select name="perDay[${dayIndex}].micWireless">
                             <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Wired Mics ($)</label>
-                        <select name="perDay[${i}].micWired">
+                        <select name="perDay[${dayIndex}].micWired">
                             <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Aux / Instrument Inputs</label>
-                    <input type="text" name="perDay[${i}].auxInputs" placeholder="e.g. 2 guitars, keyboard, laptop">
-                </div>
-                <div class="form-group">
-                    <label>Notes for this day</label>
-                    <input type="text" name="perDay[${i}].notes" placeholder="Any specifics for this date">
+                    <input type="text" name="perDay[${dayIndex}].auxInputs" placeholder="e.g. 2 guitars, keyboard, laptop">
                 </div>
             `;
-            container.appendChild(card);
-        });
-    }
+        }
+
+        // Notes for all
+        html += `
+            <div class="form-group">
+                <label>Notes for this day</label>
+                <input type="text" name="perDay[${dayIndex}].notes" placeholder="Any specifics for this date">
+            </div>
+        `;
+
+        extraDiv.innerHTML = html;
+    };
 
     // === SERVICE TYPE BRANCHING ===
     const serviceTypeNext = document.getElementById('serviceTypeNext');
