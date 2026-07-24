@@ -208,8 +208,7 @@
             if (!response.ok) throw new Error('Server error');
 
             const result = await response.json();
-            // Step Functions sync execution wraps output
-            if (result.status === 'FAILED') throw new Error('Execution failed');
+            if (result.error) throw new Error(result.error);
 
             // Show success
             document.querySelectorAll('.quote-step').forEach(s => s.classList.remove('active'));
