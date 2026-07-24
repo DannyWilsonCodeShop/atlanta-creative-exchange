@@ -61,6 +61,8 @@
     const eventDatesContainer = document.getElementById('eventDatesContainer');
     const addEventDateBtn = document.getElementById('addEventDate');
     const sameServicesGroup = document.getElementById('sameServicesGroup');
+    const sameServicesCheck = document.getElementById('sameServicesCheck');
+    const step1NextBtn = document.getElementById('step1Next');
 
     if (addEventDateBtn) {
         addEventDateBtn.addEventListener('click', () => {
@@ -89,8 +91,8 @@
                 </div>
             `;
             eventDatesContainer.appendChild(block);
-            // Show "same services" checkbox when multiple dates
             sameServicesGroup.style.display = 'block';
+            updateStep1NextTarget();
         });
     }
 
@@ -104,7 +106,74 @@
         if (eventDateCount <= 1) {
             sameServicesGroup.style.display = 'none';
         }
+        updateStep1NextTarget();
     };
+
+    // Update step 1 next button target based on same-services checkbox
+    function updateStep1NextTarget() {
+        if (eventDateCount > 1 && sameServicesCheck && !sameServicesCheck.checked) {
+            step1NextBtn.dataset.next = '1b';
+            step1NextBtn.textContent = 'Next: Per-Day Details';
+        } else {
+            step1NextBtn.dataset.next = '2';
+            step1NextBtn.textContent = 'Next: Venue Details';
+        }
+    }
+
+    if (sameServicesCheck) {
+        sameServicesCheck.addEventListener('change', updateStep1NextTarget);
+    }
+
+    // Generate per-day service cards when entering step 1b
+    function buildPerDayCards() {
+        const container = document.getElementById('perDayContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        const blocks = eventDatesContainer.querySelectorAll('.event-date-block');
+        blocks.forEach((block, i) => {
+            const dateInput = block.querySelector('input[type="date"]');
+            const dateVal = dateInput ? dateInput.value : `Day ${i + 1}`;
+            const card = document.createElement('div');
+            card.className = 'per-day-card';
+            card.innerHTML = `
+                <div class="per-day-header">
+                    <strong>Day ${i + 1}</strong> — ${dateVal || 'Date not set'}
+                </div>
+                <div class="form-group">
+                    <label>Services needed this day</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="DJ"> DJ</label>
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="PA System"> PA System</label>
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="Live Band"> Live Band</label>
+                        <label class="checkbox-label"><input type="checkbox" name="perDay[${i}].services" value="Event Hosting"> Event Hosting</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Wireless Mics</label>
+                        <select name="perDay[${i}].micWireless">
+                            <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Wired Mics</label>
+                        <select name="perDay[${i}].micWired">
+                            <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Aux / Instrument Inputs</label>
+                    <input type="text" name="perDay[${i}].auxInputs" placeholder="e.g. 2 guitars, keyboard, laptop">
+                </div>
+                <div class="form-group">
+                    <label>Notes for this day</label>
+                    <input type="text" name="perDay[${i}].notes" placeholder="Any specifics for this date">
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
 
     // === SERVICE TYPE BRANCHING ===
     const serviceTypeNext = document.getElementById('serviceTypeNext');
@@ -136,18 +205,25 @@
     function showStep(stepNum) {
         document.querySelectorAll('.quote-step').forEach(s => s.classList.remove('active'));
 
-        // Handle digital path steps (d1, d2, d3) and service type
-        const stepId = (typeof stepNum === 'string' && stepNum.startsWith('d'))
-            ? 'stepD' + stepNum.charAt(1)
-            : stepNum === 'serviceType' ? 'stepServiceType' : 'step' + stepNum;
+        // Handle all step ID types
+        let stepId;
+        if (stepNum === 'serviceType') stepId = 'stepServiceType';
+        else if (stepNum === '1b') stepId = 'step1b';
+        else if (typeof stepNum === 'string' && stepNum.startsWith('d')) stepId = 'stepD' + stepNum.charAt(1);
+        else stepId = 'step' + stepNum;
 
         const target = document.getElementById(stepId);
         if (target) target.classList.add('active');
 
+        // Build per-day cards when entering step 1b
+        if (stepNum === '1b') {
+            buildPerDayCards();
+        }
+
         // Update progress indicators
         const isDigital = typeof stepNum === 'string' && stepNum.startsWith('d');
         const progressSteps = document.querySelectorAll(isDigital ? '#digitalProgress .progress-step' : '#eventProgress .progress-step');
-        const stepIndex = isDigital ? parseInt(stepNum.charAt(1)) : stepNum;
+        const stepIndex = isDigital ? parseInt(stepNum.charAt(1)) : (stepNum === '1b' ? 1 : parseInt(stepNum));
 
         progressSteps.forEach(ps => {
             const sNum = ps.dataset.step;
@@ -233,9 +309,8 @@
         btn.addEventListener('click', () => {
             if (btn.id === 'serviceTypeNext') return; // handled separately
             const nextStep = btn.dataset.next;
-            const next = nextStep.startsWith('d') ? nextStep : parseInt(nextStep);
-            const curr = typeof currentStep === 'string' ? currentStep : currentStep;
-            if (validateStep(curr)) {
+            const next = (nextStep.startsWith('d') || nextStep === '1b') ? nextStep : parseInt(nextStep);
+            if (validateStep(currentStep)) {
                 showStep(next);
             }
         });
@@ -279,8 +354,17 @@
                     startTime: block.querySelector(`[name="eventDates[${i}].startTime"]`)?.value || block.querySelectorAll('input[type="time"]')[0].value,
                     endTime: block.querySelector(`[name="eventDates[${i}].endTime"]`)?.value || block.querySelectorAll('input[type="time"]')[1].value
                 })),
-                sameServicesAllDates: form.querySelector('[name="sameServicesAllDates"]')?.checked || true,
+                sameServicesAllDates: sameServicesCheck ? sameServicesCheck.checked : true,
                 services: Array.from(form.querySelectorAll('[name="services"]:checked')).map(c => c.value),
+                perDayDetails: (sameServicesCheck && !sameServicesCheck.checked && eventDateCount > 1) 
+                    ? Array.from(document.querySelectorAll('.per-day-card')).map((card, i) => ({
+                        services: Array.from(card.querySelectorAll(`[name="perDay[${i}].services"]:checked`)).map(c => c.value),
+                        micWireless: card.querySelector(`[name="perDay[${i}].micWireless"]`)?.value || '0',
+                        micWired: card.querySelector(`[name="perDay[${i}].micWired"]`)?.value || '0',
+                        auxInputs: card.querySelector(`[name="perDay[${i}].auxInputs"]`)?.value || '',
+                        notes: card.querySelector(`[name="perDay[${i}].notes"]`)?.value || ''
+                    }))
+                    : null,
                 genre: form.querySelector('[name="genre"]').value || '',
                 speeches: form.querySelector('[name="speeches"]').value,
                 budget: form.querySelector('[name="budget"]').value,

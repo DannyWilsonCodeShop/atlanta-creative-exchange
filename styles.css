@@ -2899,3 +2899,67 @@ section {
         grid-template-columns: 1fr;
     }
 }
+
+/* --- Per-Day Service Cards (step 1b) --- */
+.step-description {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.per-day-card {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+}
+
+.per-day-header {
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--color-cyan);
+}
+
+.per-day-card .form-group {
+    margin-bottom: 12px;
+}
+
+.per-day-card .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.per-day-card label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.per-day-card input,
+.per-day-card select {
+    width: 100%;
+    background: var(--color-bg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    font-family: var(--font-main);
+}
+
+.per-day-card .checkbox-group {
+    grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 580px) {
+    .per-day-card .form-row {
+        grid-template-columns: 1fr;
+    }
+    .per-day-card .checkbox-group {
+        grid-template-columns: 1fr;
+    }
+}

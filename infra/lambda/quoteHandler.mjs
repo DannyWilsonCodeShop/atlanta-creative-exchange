@@ -174,6 +174,7 @@ async function saveQuote(quoteId, data) {
         item.eventDates = { S: JSON.stringify(data.eventDates || []) };
         item.sameServicesAllDates = { S: String(data.sameServicesAllDates || true) };
         item.services = { S: JSON.stringify(data.services || []) };
+        item.perDayDetails = { S: JSON.stringify(data.perDayDetails || null) };
         item.genre = { S: data.genre || '' };
         item.speeches = { S: data.speeches || '' };
         item.budget = { S: data.budget || '' };
@@ -246,6 +247,7 @@ EVENT DETAILS:
 - Number of days: ${(data.eventDates || []).length}
 - Same services all dates: ${data.sameServicesAllDates}
 - Services Requested: ${(data.services || []).join(', ')}
+- Per-day details: ${data.perDayDetails ? JSON.stringify(data.perDayDetails) : 'Same services all days'}
 - Genre Preferences: ${data.genre || 'None specified'}
 - Speeches/Toasts: ${data.speeches || 'Not specified'}
 - Budget: ${data.budget || 'Not disclosed'}
