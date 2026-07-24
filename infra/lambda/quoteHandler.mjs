@@ -14,7 +14,7 @@ import { randomUUID } from 'crypto';
 const REGION = process.env.AWS_REGION || 'us-east-1';
 const TABLE_NAME = process.env.TABLE_NAME || 'ACE-Quotes';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'wilson.danny@me.com';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'wilson.danny@me.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'info@atlantacreativeexchange.com';
 const BEDROCK_MODEL_ID = 'anthropic.claude-haiku-4-5-20251001-v1:0';
 
 const dynamo = new DynamoDBClient({ region: REGION });
@@ -331,7 +331,7 @@ async function sendCustomerConfirmation(data) {
 
 <p style="color: #555; font-size: 14px; line-height: 1.6;"><strong>Payment Terms:</strong> A deposit is required to secure your date. The remaining balance is due within 24 hours of event completion. We'll provide full payment details with your quote.</p>
 
-<p style="color: #555; font-size: 16px; line-height: 1.6; margin-top: 24px;">If you have questions in the meantime, reply to this email or reach us at <a href="mailto:wilson.danny@me.com" style="color: #7b2ff7;">wilson.danny@me.com</a>.</p>
+<p style="color: #555; font-size: 16px; line-height: 1.6; margin-top: 24px;">If you have questions in the meantime, reply to this email or reach us at <a href="mailto:info@atlantacreativeexchange.com" style="color: #7b2ff7;">info@atlantacreativeexchange.com</a>.</p>
 
 <p style="color: #555; font-size: 16px; margin-top: 24px;">— The ACE Team</p>
 
