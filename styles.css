@@ -2363,3 +2363,24 @@ section {
         padding: 12px 10px;
     }
 }
+
+/* --- Back button (final step) --- */
+.step-nav-final {
+    flex-direction: column;
+    gap: 16px;
+}
+
+.btn-back {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    font-family: var(--font-main);
+    cursor: pointer;
+    padding: 8px 0;
+    transition: color var(--transition);
+}
+
+.btn-back:hover {
+    color: var(--color-cyan);
+}
