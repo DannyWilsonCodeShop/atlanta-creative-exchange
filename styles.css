@@ -2804,3 +2804,10 @@ section {
         height: 64px;
     }
 }
+
+/* Hide pillars nav link on mobile since section is hidden */
+@media (max-width: 580px) {
+    .nav-pillars-link {
+        display: none;
+    }
+}
