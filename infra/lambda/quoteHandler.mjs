@@ -405,64 +405,30 @@ Format your response clearly with headers and bullet points. Be specific with do
 
 // === OWNER EMAIL ===
 async function sendOwnerEmail(quoteId, data, aiAnalysis) {
-    const datesDisplay = (data.eventDates || []).map((d, i) => `Day ${i+1}: ${d.date} (${d.startTime} – ${d.endTime})`).join('<br>');
     const firstDate = (data.eventDates && data.eventDates[0]) ? data.eventDates[0].date : 'TBD';
+    const isDigital = data.serviceType === 'digital';
+    const serviceLabel = isDigital
+        ? (data.digitalServices || []).join(', ')
+        : (data.services || []).join(', ');
 
     const htmlBody = `
 <html>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #f0f0f0; padding: 32px;">
-<div style="max-width: 700px; margin: 0 auto; background: #1e1e1e; border-radius: 12px; padding: 36px; border: 1px solid #333;">
+<div style="max-width: 500px; margin: 0 auto; background: #1e1e1e; border-radius: 12px; padding: 36px; border: 1px solid #333; text-align: center;">
 
-<h1 style="color: #7b2ff7; margin-bottom: 8px;">New Quote Request</h1>
-<p style="color: #a0a0a0; margin-bottom: 32px;">Quote ID: ${quoteId}</p>
+<h1 style="color: #7b2ff7; margin-bottom: 4px; font-size: 22px;">New Quote Request</h1>
+<p style="color: #a0a0a0; margin-bottom: 28px; font-size: 14px;">${isDigital ? 'Digital Project' : data.eventType || 'Event'}</p>
 
-<h2 style="color: #00b4d8; border-bottom: 1px solid #333; padding-bottom: 8px;">Customer</h2>
-<table style="width: 100%; color: #f0f0f0; margin-bottom: 24px;">
-<tr><td style="color:#a0a0a0;padding:4px 0;">Name:</td><td>${data.firstName} ${data.lastName}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Email:</td><td><a href="mailto:${data.email}" style="color:#00b4d8;">${data.email}</a></td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Phone:</td><td><a href="tel:${data.phone}" style="color:#00b4d8;">${data.phone}</a></td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Organization:</td><td>${data.organization || 'N/A'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">How heard:</td><td>${data.howHeard || 'Not specified'}</td></tr>
+<table style="width: 100%; color: #f0f0f0; margin-bottom: 24px; text-align: left; font-size: 14px;">
+<tr><td style="color:#a0a0a0;padding:6px 0;">Client:</td><td><strong>${data.firstName} ${data.lastName}</strong></td></tr>
+<tr><td style="color:#a0a0a0;padding:6px 0;">Services:</td><td>${serviceLabel}</td></tr>
+${!isDigital ? `<tr><td style="color:#a0a0a0;padding:6px 0;">Date:</td><td>${firstDate}</td></tr>` : ''}
+<tr><td style="color:#a0a0a0;padding:6px 0;">Budget:</td><td>${data.budget || data.digitalBudget || 'Not disclosed'}</td></tr>
 </table>
 
-<h2 style="color: #00b4d8; border-bottom: 1px solid #333; padding-bottom: 8px;">Event Details</h2>
-<table style="width: 100%; color: #f0f0f0; margin-bottom: 24px;">
-<tr><td style="color:#a0a0a0;padding:4px 0;">Type:</td><td>${data.eventType}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Date(s):</td><td>${datesDisplay}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Same services all dates:</td><td>${data.sameServicesAllDates ? 'Yes' : 'No'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Services:</td><td><strong>${data.services.join(', ')}</strong></td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Genre:</td><td>${data.genre || 'Not specified'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Speeches:</td><td>${data.speeches || 'Not specified'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Budget:</td><td>${data.budget || 'Not disclosed'}</td></tr>
-</table>
+<a href="http://localhost:3000/quotes/${quoteId}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #00b4d8, #7b2ff7, #e91e8c); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">View Full Details in Admin Portal</a>
 
-<h2 style="color: #00b4d8; border-bottom: 1px solid #333; padding-bottom: 8px;">Venue</h2>
-<table style="width: 100%; color: #f0f0f0; margin-bottom: 24px;">
-<tr><td style="color:#a0a0a0;padding:4px 0;">Venue:</td><td>${data.venueName}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Address:</td><td>${data.venueAddress}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Room:</td><td>${data.roomName || 'N/A'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Floor/Access:</td><td>${data.floorAccess || 'Not specified'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Indoor/Outdoor:</td><td>${data.indoorOutdoor}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Room Size:</td><td><strong>${data.roomSize}</strong></td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Power:</td><td>${data.powerAvailability || 'Not specified'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Load-in:</td><td>${data.loadInTime || 'Not specified'}</td></tr>
-</table>
-
-<h2 style="color: #00b4d8; border-bottom: 1px solid #333; padding-bottom: 8px;">Equipment</h2>
-<table style="width: 100%; color: #f0f0f0; margin-bottom: 24px;">
-<tr><td style="color:#a0a0a0;padding:4px 0;">Wireless Mics:</td><td>${data.micWireless}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Wired Mics:</td><td>${data.micWired}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Aux/Inputs:</td><td>${data.auxInputs || 'None'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Monitors:</td><td>${data.monitorSpeakers || 'Not specified'}</td></tr>
-<tr><td style="color:#a0a0a0;padding:4px 0;">Notes:</td><td>${data.additionalNotes || 'None'}</td></tr>
-</table>
-
-<h2 style="color: #e91e8c; border-bottom: 1px solid #333; padding-bottom: 8px;">🤖 AI Quote Analysis</h2>
-<div style="background: #161616; border: 1px solid #333; border-radius: 8px; padding: 24px; white-space: pre-wrap; font-size: 14px; line-height: 1.7; color: #e0e0e0;">
-${aiAnalysis}
-</div>
-
-<p style="color: #a0a0a0; margin-top: 32px; font-size: 12px; text-align: center;">Atlanta Creative Exchange — Quote System</p>
+<p style="color: #a0a0a0; margin-top: 28px; font-size: 12px;">Atlanta Creative Exchange — Quote System</p>
 </div>
 </body>
 </html>`;
@@ -472,7 +438,7 @@ ${aiAnalysis}
         ReplyToAddresses: [REPLY_TO_EMAIL],
         Destination: { ToAddresses: [OWNER_EMAIL] },
         Message: {
-            Subject: { Data: `[ACE Quote] ${data.eventType} — ${data.firstName} ${data.lastName} — ${firstDate}` },
+            Subject: { Data: `[ACE Quote] ${isDigital ? 'Digital' : data.eventType} — ${data.firstName} ${data.lastName}` },
             Body: { Html: { Data: htmlBody } }
         }
     }));
