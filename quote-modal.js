@@ -207,6 +207,44 @@
             `;
             container.appendChild(card);
         });
+
+        // Update step 1b next button based on what's covered
+        const step1bNextBtn = document.getElementById('step1bNext');
+        const step2NextBtn = document.getElementById('step2Next');
+        const sameLocationChk = document.getElementById('sameLocationCheck');
+        const sameServicesChk = document.getElementById('sameServicesCheck');
+
+        if (step1bNextBtn) {
+            if (sameLocationChk && !sameLocationChk.checked) {
+                // Venue covered per-day, services covered per-day → skip to contact
+                if (sameServicesChk && !sameServicesChk.checked) {
+                    step1bNextBtn.dataset.next = '4';
+                    step1bNextBtn.textContent = 'Next: Contact Info';
+                } else {
+                    // Same services but different locations → still need step 3 for equipment
+                    step1bNextBtn.dataset.next = '3';
+                    step1bNextBtn.textContent = 'Next: Equipment Details';
+                }
+            } else {
+                // Same location → need venue (step 2)
+                if (sameServicesChk && !sameServicesChk.checked) {
+                    // Different services per day → equipment covered, skip step 3 after venue
+                    step1bNextBtn.dataset.next = '2';
+                    step1bNextBtn.textContent = 'Next: Venue Details';
+                    if (step2NextBtn) {
+                        step2NextBtn.dataset.next = '4';
+                        step2NextBtn.textContent = 'Next: Contact Info';
+                    }
+                } else {
+                    step1bNextBtn.dataset.next = '2';
+                    step1bNextBtn.textContent = 'Next: Venue Details';
+                    if (step2NextBtn) {
+                        step2NextBtn.dataset.next = '3';
+                        step2NextBtn.textContent = 'Next: Equipment';
+                    }
+                }
+            }
+        }
     }
 
     // Dynamically show questions based on per-day service selections
