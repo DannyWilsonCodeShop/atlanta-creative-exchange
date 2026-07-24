@@ -9,6 +9,7 @@
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { randomUUID } from 'crypto';
 
@@ -24,7 +25,10 @@ const dynamoRaw = new DynamoDBClient({ region: REGION });
 const dynamo = dynamoRaw;
 const docClient = DynamoDBDocumentClient.from(dynamoRaw);
 const ses = new SESClient({ region: REGION });
+const sns = new SNSClient({ region: REGION });
 const bedrock = new BedrockRuntimeClient({ region: REGION });
+
+const OWNER_PHONE = process.env.OWNER_PHONE || '+14048037330';
 
 // === PRICING GUIDE (baked in for Bedrock prompt) ===
 const PRICING_GUIDE = `
@@ -131,6 +135,9 @@ export const handler = async (event) => {
 
         // 5. Send customer confirmation
         await sendCustomerConfirmation(body);
+
+        // 6. SMS notification to owner
+        await sendSmsNotification(body);
 
         return {
             statusCode: 200,
@@ -523,6 +530,26 @@ function calculateDuration(start, end) {
     const hours = Math.floor(mins / 60);
     const remaining = mins % 60;
     return remaining > 0 ? `${hours}h ${remaining}m` : `${hours} hours`;
+}
+
+// === SMS NOTIFICATION ===
+async function sendSmsNotification(data) {
+    const isDigital = data.serviceType === 'digital';
+    const serviceLabel = isDigital
+        ? `Digital: ${(data.digitalServices || []).join(', ')}`
+        : `Event: ${data.eventType || 'Unknown'}`;
+
+    const message = `🎵 New ACE Quote!\n${data.firstName} ${data.lastName}\n${serviceLabel}\n${isDigital ? '' : `Venue: ${data.venueName || 'TBD'}\nSize: ${data.roomSize || 'TBD'}\n`}Budget: ${data.budget || data.digitalBudget || 'Not disclosed'}\nCheck admin portal for details.`;
+
+    try {
+        await sns.send(new PublishCommand({
+            PhoneNumber: OWNER_PHONE,
+            Message: message,
+        }));
+    } catch (err) {
+        console.error('SMS notification failed:', err);
+        // Don't throw — SMS is non-critical
+    }
 }
 
 // === EMAIL LIST SUBSCRIBE ===
