@@ -138,12 +138,18 @@
         const blocks = eventDatesContainer.querySelectorAll('.event-date-block');
         blocks.forEach((block, i) => {
             const dateInput = block.querySelector('input[type="date"]');
-            const dateVal = dateInput ? dateInput.value : `Day ${i + 1}`;
+            const rawDate = dateInput ? dateInput.value : '';
+            let dateDisplay = 'Date not set';
+            if (rawDate) {
+                const [y, m, d] = rawDate.split('-');
+                const dt = new Date(y, m - 1, d);
+                dateDisplay = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
             const card = document.createElement('div');
             card.className = 'per-day-card';
             card.innerHTML = `
                 <div class="per-day-header">
-                    <strong>Day ${i + 1}</strong> — ${dateVal || 'Date not set'}
+                    <strong>Day ${i + 1}</strong> — ${dateDisplay}
                 </div>
                 <div class="form-group">
                     <label>Services needed this day *</label>
