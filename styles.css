@@ -1450,7 +1450,7 @@ section {
     }
 
     .services {
-        padding-top: 100px;
+        padding-top: 24px;
         margin-top: 72px;
     }
 
@@ -1467,9 +1467,8 @@ section {
         margin-bottom: 12px;
     }
 
-    /* Mobile vision tagline above services */
-    .services::before {
-        content: 'A hub for cultural and self expression through music, art, and technology.';
+    /* Mobile vision tagline — shows above title */
+    .mobile-vision {
         display: block;
         font-family: var(--font-display);
         font-style: italic;
@@ -1477,8 +1476,12 @@ section {
         color: var(--color-text-muted);
         text-align: center;
         max-width: 320px;
-        margin: 0 auto 32px;
+        margin: 0 auto 20px;
         line-height: 1.6;
+    }
+
+    .services::before {
+        display: none;
     }
 
     .hero {
@@ -2781,4 +2784,9 @@ section {
         flex: 0 0 70vw;
         height: 220px;
     }
+}
+
+/* --- Mobile vision text (hidden on desktop) --- */
+.mobile-vision {
+    display: none;
 }
