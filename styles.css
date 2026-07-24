@@ -574,6 +574,9 @@ section {
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     transition: transform var(--transition-slow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .events-image:hover {
@@ -584,6 +587,8 @@ section {
     width: 100%;
     height: auto;
     border-radius: var(--radius);
+    object-fit: contain;
+    object-position: center;
 }
 
 .events-info h3 {
