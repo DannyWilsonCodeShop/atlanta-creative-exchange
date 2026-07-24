@@ -358,10 +358,24 @@
 
     // === INLINE QUOTE BUTTONS ===
     // Any element with data-quote-trigger opens the modal
+    // If value is "digital", skip service type and go straight to digital path
     document.querySelectorAll('[data-quote-trigger]').forEach(el => {
         el.addEventListener('click', (e) => {
             e.preventDefault();
             openModal();
+
+            const triggerType = el.getAttribute('data-quote-trigger');
+            if (triggerType === 'digital') {
+                // Pre-select digital and skip to first digital step
+                const digitalRadio = form.querySelector('input[name="serviceType"][value="digital"]');
+                if (digitalRadio) digitalRadio.checked = true;
+                document.getElementById('stepServiceType').classList.remove('active');
+                document.getElementById('digitalProgress').style.display = 'flex';
+                document.getElementById('eventProgress').style.display = 'none';
+                document.getElementById('stepD1').classList.add('active');
+                currentStep = 'd1';
+                modal.scrollTop = 0;
+            }
         });
     });
 
