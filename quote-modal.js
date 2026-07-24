@@ -228,8 +228,8 @@
         // Notes for all
         html += `
             <div class="form-group">
-                <label>Notes for this day</label>
-                <input type="text" name="perDay[${dayIndex}].notes" placeholder="Any specifics for this date">
+                <label>Event flow & special instructions</label>
+                <input type="text" name="perDay[${dayIndex}].notes" placeholder="e.g. Ceremony 5pm, cocktail hour 6pm, reception 7pm. Any special requests?">
             </div>
         `;
 
