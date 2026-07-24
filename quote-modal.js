@@ -326,7 +326,20 @@
         </svg>
         Get a Quote
     `;
-    fab.addEventListener('click', openModal);
+    fab.addEventListener('click', () => {
+        openModal();
+        // If on services-creative page, go straight to digital
+        if (window.location.pathname.includes('services-creative')) {
+            const digitalRadio = form.querySelector('input[name="serviceType"][value="digital"]');
+            if (digitalRadio) digitalRadio.checked = true;
+            document.getElementById('stepServiceType').classList.remove('active');
+            document.getElementById('digitalProgress').style.display = 'flex';
+            document.getElementById('eventProgress').style.display = 'none';
+            document.getElementById('stepD1').classList.add('active');
+            currentStep = 'd1';
+            modal.scrollTop = 0;
+        }
+    });
     document.body.appendChild(fab);
 
     // === POPUP AFTER DELAY ===
