@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ACE Quote System — API Gateway + Lambda + DynamoDB + SES + Bedrock
+
+Parameters:
+  OwnerEmail:
+    Type: String
+    Default: wilson.danny@me.com
+    Description: Email address for quote notifications and SES sender
+
+Resources:
+
+  # === DynamoDB Table ===
+  QuotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ACE-Quotes
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: quoteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: quoteId
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: AtlantaCreativeExchange
+
+  # === Lambda Execution Role ===
+  QuoteLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ACE-QuoteLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ACE-QuoteLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              # DynamoDB
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource: !GetAtt QuotesTable.Arn
+              # SES
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
+              # Bedrock
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource: '*'
+
+  # === Lambda Function ===
+  QuoteLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: ACE-QuoteHandler
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Timeout: 30
+      MemorySize: 256
+      Role: !GetAtt QuoteLambdaRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref QuotesTable
+          OWNER_EMAIL: !Ref OwnerEmail
+          FROM_EMAIL: !Ref OwnerEmail
+      Code:
+        ZipFile: |
+          // Placeholder — replaced by deploy script
+          export const handler = async () => ({ statusCode: 200, body: '{}' });
+      Tags:
+        - Key: Project
+          Value: AtlantaCreativeExchange
+
+  # === API Gateway (HTTP API) ===
+  QuoteApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: ACE-QuoteAPI
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+      Tags:
+        Project: AtlantaCreativeExchange
+
+  # API Gateway Integration
+  QuoteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QuoteApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt QuoteLambda.Arn
+      PayloadFormatVersion: '2.0'
+
+  # API Gateway Route
+  QuoteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QuoteApi
+      RouteKey: POST /quote
+      Target: !Sub integrations/${QuoteIntegration}
+
+  # API Gateway Stage (auto-deploy)
+  QuoteStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref QuoteApi
+      StageName: $default
+      AutoDeploy: true
+
+  # Lambda permission for API Gateway
+  QuoteLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref QuoteLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QuoteApi}/*/*
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !GetAtt QuoteApi.ApiEndpoint
+    Export:
+      Name: ACE-QuoteApiEndpoint
+
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref QuotesTable
+
+  LambdaFunction:
+    Description: Lambda function name
+    Value: !Ref QuoteLambda
