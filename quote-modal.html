@@ -9,13 +9,49 @@
         </div>
 
         <form class="quote-form" id="quoteForm" novalidate>
-            <!-- Progress indicator -->
-            <div class="quote-progress">
+            <!-- Service Type Selector -->
+            <div class="quote-step active" id="stepServiceType">
+                <h3>What can we help you with?</h3>
+                <div class="service-type-cards">
+                    <label class="service-type-card">
+                        <input type="radio" name="serviceType" value="event" required>
+                        <div class="service-type-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17V5l12-2v12"/></svg>
+                            <strong>Event & Sound Services</strong>
+                            <span>DJ, PA systems, live bands, event hosting</span>
+                        </div>
+                    </label>
+                    <label class="service-type-card">
+                        <input type="radio" name="serviceType" value="digital">
+                        <div class="service-type-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                            <strong>Online Platforms & Digital</strong>
+                            <span>Websites, apps, branding, content production</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="step-nav">
+                    <div></div>
+                    <button type="button" class="btn btn-primary step-next" id="serviceTypeNext">Next</button>
+                </div>
+            </div>
+
+            <!-- Progress indicator (event path) -->
+            <div class="quote-progress" id="eventProgress" style="display:none;">
                 <div class="progress-step active" data-step="1"><span>1</span> Event</div>
                 <div class="progress-step" data-step="2"><span>2</span> Venue</div>
                 <div class="progress-step" data-step="3"><span>3</span> Equipment</div>
                 <div class="progress-step" data-step="4"><span>4</span> Contact</div>
             </div>
+
+            <!-- Progress indicator (digital path) -->
+            <div class="quote-progress" id="digitalProgress" style="display:none;">
+                <div class="progress-step active" data-step="d1"><span>1</span> Project</div>
+                <div class="progress-step" data-step="d2"><span>2</span> Details</div>
+                <div class="progress-step" data-step="d3"><span>3</span> Contact</div>
+            </div>
+
+            <!-- ============ EVENT PATH ============ -->
 
             <!-- Step 1: Event Details -->
             <div class="quote-step active" id="step1">
@@ -324,6 +360,209 @@
                     <button type="submit" class="btn btn-primary btn-full" id="quoteSubmit">Submit Quote Request</button>
                 </div>
             </div>
+
+            <!-- ============ DIGITAL PATH ============ -->
+
+            <!-- Digital Step 1: Project Type -->
+            <div class="quote-step" id="stepD1">
+                <h3>Project Overview</h3>
+
+                <div class="form-group">
+                    <label>What do you need? *</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Website"> Website</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Mobile App"> Mobile App</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Web App"> Web Application</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="E-Commerce"> E-Commerce Store</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Branding"> Branding & Identity</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Content Production"> Content Production (video/photo)</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Content Editing"> Content Editing</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Other"> Other / Not Sure</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-project-description">Describe your project *</label>
+                    <textarea id="q-project-description" name="projectDescription" rows="4" placeholder="What are you trying to build or achieve? Who is your audience? What problem does it solve?" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-has-existing">Do you have an existing site/app?</label>
+                    <select id="q-has-existing" name="hasExisting">
+                        <option value="">Select</option>
+                        <option value="No - starting from scratch">No — starting from scratch</option>
+                        <option value="Yes - needs redesign">Yes — needs a redesign</option>
+                        <option value="Yes - needs new features">Yes — needs new features added</option>
+                        <option value="Yes - needs rebuild">Yes — needs a full rebuild</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-existing-url">Current website URL (if applicable)</label>
+                    <input type="url" id="q-existing-url" name="existingUrl" placeholder="https://yoursite.com">
+                </div>
+
+                <div class="step-nav">
+                    <button type="button" class="btn-back step-prev" data-prev="serviceType">&larr; Back</button>
+                    <button type="button" class="btn btn-primary step-next" data-next="d2">Next: Project Details</button>
+                </div>
+            </div>
+
+            <!-- Digital Step 2: Specifics -->
+            <div class="quote-step" id="stepD2">
+                <h3>Project Details</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="q-page-count">Estimated number of pages/screens</label>
+                        <select id="q-page-count" name="pageCount">
+                            <option value="">Select</option>
+                            <option value="1 (landing page)">1 (landing page)</option>
+                            <option value="2-5 pages">2–5 pages</option>
+                            <option value="6-10 pages">6–10 pages</option>
+                            <option value="10+ pages">10+ pages</option>
+                            <option value="Not sure">Not sure yet</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="q-timeline">Desired timeline</label>
+                        <select id="q-timeline" name="timeline">
+                            <option value="">Select</option>
+                            <option value="ASAP (rush)">ASAP (rush +25%)</option>
+                            <option value="2-4 weeks">2–4 weeks</option>
+                            <option value="1-2 months">1–2 months</option>
+                            <option value="2-3 months">2–3 months</option>
+                            <option value="Flexible">Flexible / no rush</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Key features needed</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="User accounts/login"> User accounts / login</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Payment processing"> Payment processing</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Booking/scheduling"> Booking / scheduling</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="CMS (content management)"> CMS (edit your own content)</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Social media integration"> Social media integration</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Email/newsletter"> Email / newsletter signup</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Gallery/portfolio"> Gallery / portfolio</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Blog"> Blog</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Analytics"> Analytics / tracking</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="API integrations"> API / third-party integrations</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-design-direction">Design direction</label>
+                    <select id="q-design-direction" name="designDirection">
+                        <option value="">Select</option>
+                        <option value="Need full design">Need full design from scratch</option>
+                        <option value="Have brand guidelines">Have brand guidelines to follow</option>
+                        <option value="Have mockups/wireframes">Have mockups or wireframes ready</option>
+                        <option value="Match existing brand">Match existing brand/site style</option>
+                        <option value="Not sure - need guidance">Not sure — need guidance</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-reference-sites">Reference sites you like (optional)</label>
+                    <input type="text" id="q-reference-sites" name="referenceSites" placeholder="Links to sites/apps with a vibe you like">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="q-digital-budget">Budget range</label>
+                        <select id="q-digital-budget" name="digitalBudget">
+                            <option value="">Prefer not to say</option>
+                            <option value="Under $1000">Under $1,000</option>
+                            <option value="$1000 - $3000">$1,000 – $3,000</option>
+                            <option value="$3000 - $5000">$3,000 – $5,000</option>
+                            <option value="$5000 - $10000">$5,000 – $10,000</option>
+                            <option value="$10000 - $25000">$10,000 – $25,000</option>
+                            <option value="$25000+">$25,000+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="q-ongoing-support">Ongoing support needed?</label>
+                        <select id="q-ongoing-support" name="ongoingSupport">
+                            <option value="">Select</option>
+                            <option value="No - just build it">No — just build it and hand it off</option>
+                            <option value="Maybe - occasional updates">Maybe — occasional updates</option>
+                            <option value="Yes - monthly maintenance">Yes — monthly maintenance</option>
+                            <option value="Yes - full management">Yes — full ongoing management</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-digital-notes">Anything else we should know?</label>
+                    <textarea id="q-digital-notes" name="digitalNotes" rows="3" placeholder="Special requirements, integrations, inspiration, concerns..."></textarea>
+                </div>
+
+                <div class="step-nav">
+                    <button type="button" class="btn btn-outline step-prev" data-prev="d1">&larr; Back</button>
+                    <button type="button" class="btn btn-primary step-next" data-next="d3">Next: Contact Info</button>
+                </div>
+            </div>
+
+            <!-- Digital Step 3: Contact (shared with event step 4) -->
+            <div class="quote-step" id="stepD3">
+                <h3>Contact Information</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="q-d-first-name">First Name *</label>
+                        <input type="text" id="q-d-first-name" name="dFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="q-d-last-name">Last Name *</label>
+                        <input type="text" id="q-d-last-name" name="dLastName" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="q-d-email">Email *</label>
+                        <input type="email" id="q-d-email" name="dEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="q-d-phone">Phone *</label>
+                        <input type="tel" id="q-d-phone" name="dPhone" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-d-org">Organization / Company (if applicable)</label>
+                    <input type="text" id="q-d-org" name="dOrganization" placeholder="Your business or organization name">
+                </div>
+
+                <div class="form-group">
+                    <label for="q-d-how-heard">How did you hear about us?</label>
+                    <select id="q-d-how-heard" name="dHowHeard">
+                        <option value="">Select</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="Google">Google Search</option>
+                        <option value="Referral">Friend / Referral</option>
+                        <option value="Creative Rest Event">Creative Rest Event</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label terms-check">
+                        <input type="checkbox" id="q-d-terms" name="dTermsAgreed" required>
+                        I agree to be contacted regarding this project quote.
+                    </label>
+                </div>
+
+                <div class="step-nav step-nav-final">
+                    <button type="button" class="btn-back step-prev" data-prev="d2">&larr; Back to Project Details</button>
+                    <button type="submit" class="btn btn-primary btn-full" id="digitalSubmit">Submit Project Request</button>
+                </div>
+            </div>
+
+            <!-- ============ SHARED SUCCESS/ERROR ============ -->
 
             <!-- Success state -->
             <div class="quote-success" id="quoteSuccess" style="display:none;">

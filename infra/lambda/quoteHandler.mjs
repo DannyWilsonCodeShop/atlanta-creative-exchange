@@ -71,6 +71,20 @@ Bundle Discounts:
 Payment Terms:
 - A deposit is required to secure the date
 - Remaining balance due within 24 hours of event completion
+
+DIGITAL SERVICES PRICING:
+- Landing Page: $500–$1,500
+- Multi-Page Website (3-7 pages): $1,500–$5,000
+- E-Commerce Site: $3,000–$8,000
+- Web Application: $5,000–$15,000+
+- Mobile App (iOS/Android): $8,000–$25,000+
+- Branding Package: $800–$3,000
+- Content Production (per project): $500–$5,000
+- Content Editing (per project): $200–$2,000
+- Monthly hosting & maintenance: $50–$200/month
+- Revisions: 2 rounds included, additional $75/hr
+- Rush delivery (under 2 weeks): +25%
+- Ongoing support retainer: $300–$800/month
 `;
 
 // === MAIN HANDLER ===
@@ -125,41 +139,101 @@ async function saveQuote(quoteId, data) {
         quoteId: { S: quoteId },
         submittedAt: { S: data.submittedAt || new Date().toISOString() },
         status: { S: 'pending' },
+        serviceType: { S: data.serviceType || 'event' },
         customerName: { S: `${data.firstName} ${data.lastName}` },
         customerEmail: { S: data.email },
         customerPhone: { S: data.phone },
         organization: { S: data.organization || '' },
-        eventType: { S: data.eventType },
-        eventDate: { S: data.eventDate },
-        startTime: { S: data.startTime },
-        endTime: { S: data.endTime },
-        services: { SS: data.services },
-        genre: { S: data.genre || '' },
-        speeches: { S: data.speeches || '' },
-        budget: { S: data.budget || '' },
-        venueName: { S: data.venueName },
-        venueAddress: { S: data.venueAddress },
-        roomName: { S: data.roomName || '' },
-        floorAccess: { S: data.floorAccess || '' },
-        indoorOutdoor: { S: data.indoorOutdoor },
-        roomSize: { S: data.roomSize },
-        powerAvailability: { S: data.powerAvailability || '' },
-        loadInTime: { S: data.loadInTime || '' },
-        micWireless: { S: data.micWireless || '0' },
-        micWired: { S: data.micWired || '0' },
-        auxInputs: { S: data.auxInputs || '' },
-        monitorSpeakers: { S: data.monitorSpeakers || '' },
-        additionalNotes: { S: data.additionalNotes || '' },
         howHeard: { S: data.howHeard || '' },
         source: { S: data.source || '' }
     };
+
+    if (data.serviceType === 'digital') {
+        item.digitalServices = { S: JSON.stringify(data.digitalServices || []) };
+        item.projectDescription = { S: data.projectDescription || '' };
+        item.hasExisting = { S: data.hasExisting || '' };
+        item.existingUrl = { S: data.existingUrl || '' };
+        item.pageCount = { S: data.pageCount || '' };
+        item.timeline = { S: data.timeline || '' };
+        item.features = { S: JSON.stringify(data.features || []) };
+        item.designDirection = { S: data.designDirection || '' };
+        item.referenceSites = { S: data.referenceSites || '' };
+        item.digitalBudget = { S: data.digitalBudget || '' };
+        item.ongoingSupport = { S: data.ongoingSupport || '' };
+        item.digitalNotes = { S: data.digitalNotes || '' };
+    } else {
+        item.eventType = { S: data.eventType || '' };
+        item.eventDate = { S: data.eventDate || '' };
+        item.startTime = { S: data.startTime || '' };
+        item.endTime = { S: data.endTime || '' };
+        item.services = { S: JSON.stringify(data.services || []) };
+        item.genre = { S: data.genre || '' };
+        item.speeches = { S: data.speeches || '' };
+        item.budget = { S: data.budget || '' };
+        item.venueName = { S: data.venueName || '' };
+        item.venueAddress = { S: data.venueAddress || '' };
+        item.roomName = { S: data.roomName || '' };
+        item.floorAccess = { S: data.floorAccess || '' };
+        item.indoorOutdoor = { S: data.indoorOutdoor || '' };
+        item.roomSize = { S: data.roomSize || '' };
+        item.powerAvailability = { S: data.powerAvailability || '' };
+        item.loadInTime = { S: data.loadInTime || '' };
+        item.micWireless = { S: data.micWireless || '0' };
+        item.micWired = { S: data.micWired || '0' };
+        item.auxInputs = { S: data.auxInputs || '' };
+        item.monitorSpeakers = { S: data.monitorSpeakers || '' };
+        item.additionalNotes = { S: data.additionalNotes || '' };
+    }
 
     await dynamo.send(new PutItemCommand({ TableName: TABLE_NAME, Item: item }));
 }
 
 // === BEDROCK AI ANALYSIS ===
 async function analyzeWithBedrock(data) {
-    const eventSummary = `
+    let eventSummary;
+    let promptContext;
+
+    if (data.serviceType === 'digital') {
+        eventSummary = `
+DIGITAL PROJECT REQUEST:
+- Services: ${(data.digitalServices || []).join(', ')}
+- Description: ${data.projectDescription || 'Not provided'}
+- Existing site/app: ${data.hasExisting || 'Not specified'}
+- Existing URL: ${data.existingUrl || 'N/A'}
+- Pages/Screens: ${data.pageCount || 'Not specified'}
+- Timeline: ${data.timeline || 'Not specified'}
+- Features needed: ${(data.features || []).join(', ') || 'None specified'}
+- Design direction: ${data.designDirection || 'Not specified'}
+- Reference sites: ${data.referenceSites || 'None'}
+- Budget: ${data.digitalBudget || 'Not disclosed'}
+- Ongoing support: ${data.ongoingSupport || 'Not specified'}
+- Additional notes: ${data.digitalNotes || 'None'}
+
+CONTACT:
+- Name: ${data.firstName} ${data.lastName}
+- Organization: ${data.organization || 'N/A'}
+- How they heard about us: ${data.howHeard || 'Not specified'}
+`;
+        promptContext = `You are the AI sales assistant for Atlanta Creative Exchange (ACE), a creative technology company based in Atlanta, Georgia.
+
+A customer has submitted a digital project request. Using the pricing guide and project details below, provide:
+
+1. RECOMMENDED QUOTE RANGE — A specific dollar range for this project based on their needs, complexity, features, and timeline. Break it down by line item (design, development, integrations, hosting, etc.). Show a low and high estimate.
+
+2. TAILORED FOLLOW-UP QUESTIONS — 5-8 intelligent questions specific to THIS project that the sales team should ask on the discovery call. Consider technical requirements, user flows, content needs, and scope gaps.
+
+3. PROJECT ANALYSIS — Brief assessment: complexity level (simple/moderate/complex/enterprise), estimated timeline, potential technical challenges, and recommended tech stack.
+
+4. UPSELL OPPORTUNITIES — Additional services that would benefit this project (branding, ongoing maintenance, content, analytics, SEO, etc.).
+
+${PRICING_GUIDE}
+
+${eventSummary}
+
+Format your response clearly with headers and bullet points. Be specific with dollar amounts.`;
+    } else {
+    } else {
+        eventSummary = `
 EVENT DETAILS:
 - Type: ${data.eventType}
 - Date: ${data.eventDate}
@@ -192,7 +266,7 @@ CONTACT:
 - How they heard about us: ${data.howHeard || 'Not specified'}
 `;
 
-    const prompt = `You are the AI sales assistant for Atlanta Creative Exchange (ACE), an audio production, DJ, PA system, live music, and event hosting company based in Atlanta, Georgia.
+        promptContext = `You are the AI sales assistant for Atlanta Creative Exchange (ACE), an audio production, DJ, PA system, live music, and event hosting company based in Atlanta, Georgia.
 
 A customer has submitted a quote request. Using the pricing guide and event details below, provide:
 
@@ -209,12 +283,13 @@ ${PRICING_GUIDE}
 ${eventSummary}
 
 Format your response clearly with headers and bullet points. Be specific with dollar amounts. This analysis goes directly to the business owner to help them craft the final quote.`;
+    }
 
     const requestBody = {
         anthropic_version: 'bedrock-2023-05-31',
         max_tokens: 2000,
         messages: [
-            { role: 'user', content: prompt }
+            { role: 'user', content: promptContext }
         ]
     };
 

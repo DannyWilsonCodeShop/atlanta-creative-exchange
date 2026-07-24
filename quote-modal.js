@@ -56,27 +56,74 @@
     // Expose globally so buttons can trigger it
     window.openQuoteModal = openModal;
 
+    // === SERVICE TYPE BRANCHING ===
+    const serviceTypeNext = document.getElementById('serviceTypeNext');
+    serviceTypeNext.addEventListener('click', () => {
+        const selected = form.querySelector('input[name="serviceType"]:checked');
+        if (!selected) {
+            const cards = document.querySelector('.service-type-cards');
+            cards.style.outline = '1px solid var(--color-magenta)';
+            return;
+        }
+        document.querySelector('.service-type-cards').style.outline = '';
+        document.getElementById('stepServiceType').classList.remove('active');
+
+        if (selected.value === 'event') {
+            document.getElementById('eventProgress').style.display = 'flex';
+            document.getElementById('digitalProgress').style.display = 'none';
+            document.getElementById('step1').classList.add('active');
+            currentStep = 1;
+        } else {
+            document.getElementById('digitalProgress').style.display = 'flex';
+            document.getElementById('eventProgress').style.display = 'none';
+            document.getElementById('stepD1').classList.add('active');
+            currentStep = 'd1';
+        }
+        modal.scrollTop = 0;
+    });
+
     // === MULTI-STEP NAVIGATION ===
     function showStep(stepNum) {
         document.querySelectorAll('.quote-step').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById('step' + stepNum);
+
+        // Handle digital path steps (d1, d2, d3) and service type
+        const stepId = (typeof stepNum === 'string' && stepNum.startsWith('d'))
+            ? 'stepD' + stepNum.charAt(1)
+            : stepNum === 'serviceType' ? 'stepServiceType' : 'step' + stepNum;
+
+        const target = document.getElementById(stepId);
         if (target) target.classList.add('active');
 
-        // Update progress
+        // Update progress indicators
+        const isDigital = typeof stepNum === 'string' && stepNum.startsWith('d');
+        const progressSteps = document.querySelectorAll(isDigital ? '#digitalProgress .progress-step' : '#eventProgress .progress-step');
+        const stepIndex = isDigital ? parseInt(stepNum.charAt(1)) : stepNum;
+
         progressSteps.forEach(ps => {
-            const sNum = parseInt(ps.dataset.step);
+            const sNum = ps.dataset.step;
+            const sIndex = isDigital ? parseInt(sNum.charAt(1)) : parseInt(sNum);
             ps.classList.remove('active', 'completed');
-            if (sNum === stepNum) ps.classList.add('active');
-            else if (sNum < stepNum) ps.classList.add('completed');
+            if (sIndex === stepIndex) ps.classList.add('active');
+            else if (sIndex < stepIndex) ps.classList.add('completed');
         });
 
+        // Handle going back to service type
+        if (stepNum === 'serviceType') {
+            document.getElementById('eventProgress').style.display = 'none';
+            document.getElementById('digitalProgress').style.display = 'none';
+        }
+
         currentStep = stepNum;
-        // Scroll modal to top
         modal.scrollTop = 0;
     }
 
-    function validateStep(stepNum) {
-        const step = document.getElementById('step' + stepNum);
+    function validateStep(stepId) {
+        const stepElId = (typeof stepId === 'string' && stepId.startsWith('d'))
+            ? 'stepD' + stepId.charAt(1)
+            : 'step' + stepId;
+        const step = document.getElementById(stepElId);
+        if (!step) return true;
+
         const required = step.querySelectorAll('[required]');
         let valid = true;
 
@@ -89,12 +136,11 @@
             }
         });
 
-        // Step 1: check at least one service selected
-        if (stepNum === 1) {
+        // Step 1 (event): check at least one service selected
+        if (stepId === 1) {
             const checked = step.querySelectorAll('input[name="services"]:checked');
             if (checked.length === 0) {
                 valid = false;
-                // Highlight the checkbox group
                 const grp = step.querySelector('.checkbox-group');
                 if (grp) grp.style.outline = '1px solid var(--color-magenta)';
             } else {
@@ -103,8 +149,8 @@
             }
         }
 
-        // Step 2: check room size radio
-        if (stepNum === 2) {
+        // Step 2 (event): check room size radio
+        if (stepId === 2) {
             const roomChecked = step.querySelector('input[name="roomSize"]:checked');
             if (!roomChecked) {
                 valid = false;
@@ -116,15 +162,31 @@
             }
         }
 
+        // Digital step d1: check at least one digital service
+        if (stepId === 'd1') {
+            const checked = step.querySelectorAll('input[name="digitalServices"]:checked');
+            if (checked.length === 0) {
+                valid = false;
+                const grp = step.querySelector('.checkbox-group');
+                if (grp) grp.style.outline = '1px solid var(--color-magenta)';
+            } else {
+                const grp = step.querySelector('.checkbox-group');
+                if (grp) grp.style.outline = '';
+            }
+        }
+
         return valid;
     }
 
     // Next buttons
     document.querySelectorAll('.step-next').forEach(btn => {
         btn.addEventListener('click', () => {
-            const nextStep = parseInt(btn.dataset.next);
-            if (validateStep(currentStep)) {
-                showStep(nextStep);
+            if (btn.id === 'serviceTypeNext') return; // handled separately
+            const nextStep = btn.dataset.next;
+            const next = nextStep.startsWith('d') ? nextStep : parseInt(nextStep);
+            const curr = typeof currentStep === 'string' ? currentStep : currentStep;
+            if (validateStep(curr)) {
+                showStep(next);
             }
         });
     });
@@ -132,8 +194,9 @@
     // Prev buttons
     document.querySelectorAll('.step-prev').forEach(btn => {
         btn.addEventListener('click', () => {
-            const prevStep = parseInt(btn.dataset.prev);
-            showStep(prevStep);
+            const prevStep = btn.dataset.prev;
+            const prev = prevStep === 'serviceType' ? 'serviceType' : (prevStep.startsWith('d') ? prevStep : parseInt(prevStep));
+            showStep(prev);
         });
     });
 
@@ -153,49 +216,74 @@
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        if (!validateStep(4)) return;
+        const serviceType = form.querySelector('input[name="serviceType"]:checked').value;
+        let formData;
 
-        // Gather all form data
-        const formData = {
-            // Event
-            eventType: form.querySelector('[name="eventType"]').value,
-            eventDate: form.querySelector('[name="eventDate"]').value,
-            startTime: form.querySelector('[name="startTime"]').value,
-            endTime: form.querySelector('[name="endTime"]').value,
-            services: Array.from(form.querySelectorAll('[name="services"]:checked')).map(c => c.value),
-            genre: form.querySelector('[name="genre"]').value || '',
-            speeches: form.querySelector('[name="speeches"]').value,
-            budget: form.querySelector('[name="budget"]').value,
-            // Venue
-            venueName: form.querySelector('[name="venueName"]').value,
-            venueAddress: form.querySelector('[name="venueAddress"]').value,
-            roomName: form.querySelector('[name="roomName"]').value || '',
-            floorAccess: form.querySelector('[name="floorAccess"]').value,
-            indoorOutdoor: form.querySelector('[name="indoorOutdoor"]').value,
-            roomSize: form.querySelector('[name="roomSize"]:checked').value,
-            powerAvailability: form.querySelector('[name="powerAvailability"]').value,
-            loadInTime: form.querySelector('[name="loadInTime"]').value || '',
-            // Equipment
-            micWireless: form.querySelector('[name="micWireless"]').value,
-            micWired: form.querySelector('[name="micWired"]').value,
-            auxInputs: form.querySelector('[name="auxInputs"]').value || '',
-            monitorSpeakers: form.querySelector('[name="monitorSpeakers"]').value,
-            additionalNotes: form.querySelector('[name="additionalNotes"]').value || '',
-            // Contact
-            firstName: form.querySelector('[name="firstName"]').value,
-            lastName: form.querySelector('[name="lastName"]').value,
-            email: form.querySelector('[name="email"]').value,
-            phone: form.querySelector('[name="phone"]').value,
-            organization: form.querySelector('[name="organization"]').value || '',
-            howHeard: form.querySelector('[name="howHeard"]').value,
-            // Meta
-            submittedAt: new Date().toISOString(),
-            source: window.location.pathname
-        };
+        if (serviceType === 'event') {
+            if (!validateStep(4)) return;
+            formData = {
+                serviceType: 'event',
+                eventType: form.querySelector('[name="eventType"]').value,
+                eventDate: form.querySelector('[name="eventDate"]').value,
+                startTime: form.querySelector('[name="startTime"]').value,
+                endTime: form.querySelector('[name="endTime"]').value,
+                services: Array.from(form.querySelectorAll('[name="services"]:checked')).map(c => c.value),
+                genre: form.querySelector('[name="genre"]').value || '',
+                speeches: form.querySelector('[name="speeches"]').value,
+                budget: form.querySelector('[name="budget"]').value,
+                venueName: form.querySelector('[name="venueName"]').value,
+                venueAddress: form.querySelector('[name="venueAddress"]').value,
+                roomName: form.querySelector('[name="roomName"]').value || '',
+                floorAccess: form.querySelector('[name="floorAccess"]').value,
+                indoorOutdoor: form.querySelector('[name="indoorOutdoor"]').value,
+                roomSize: form.querySelector('[name="roomSize"]:checked').value,
+                powerAvailability: form.querySelector('[name="powerAvailability"]').value,
+                loadInTime: form.querySelector('[name="loadInTime"]').value || '',
+                micWireless: form.querySelector('[name="micWireless"]').value,
+                micWired: form.querySelector('[name="micWired"]').value,
+                auxInputs: form.querySelector('[name="auxInputs"]').value || '',
+                monitorSpeakers: form.querySelector('[name="monitorSpeakers"]').value,
+                additionalNotes: form.querySelector('[name="additionalNotes"]').value || '',
+                firstName: form.querySelector('[name="firstName"]').value,
+                lastName: form.querySelector('[name="lastName"]').value,
+                email: form.querySelector('[name="email"]').value,
+                phone: form.querySelector('[name="phone"]').value,
+                organization: form.querySelector('[name="organization"]').value || '',
+                howHeard: form.querySelector('[name="howHeard"]').value,
+                submittedAt: new Date().toISOString(),
+                source: window.location.pathname
+            };
+        } else {
+            if (!validateStep('d3')) return;
+            formData = {
+                serviceType: 'digital',
+                digitalServices: Array.from(form.querySelectorAll('[name="digitalServices"]:checked')).map(c => c.value),
+                projectDescription: form.querySelector('[name="projectDescription"]').value,
+                hasExisting: form.querySelector('[name="hasExisting"]').value || '',
+                existingUrl: form.querySelector('[name="existingUrl"]').value || '',
+                pageCount: form.querySelector('[name="pageCount"]').value || '',
+                timeline: form.querySelector('[name="timeline"]').value || '',
+                features: Array.from(form.querySelectorAll('[name="features"]:checked')).map(c => c.value),
+                designDirection: form.querySelector('[name="designDirection"]').value || '',
+                referenceSites: form.querySelector('[name="referenceSites"]').value || '',
+                digitalBudget: form.querySelector('[name="digitalBudget"]').value || '',
+                ongoingSupport: form.querySelector('[name="ongoingSupport"]').value || '',
+                digitalNotes: form.querySelector('[name="digitalNotes"]').value || '',
+                firstName: form.querySelector('[name="dFirstName"]').value,
+                lastName: form.querySelector('[name="dLastName"]').value,
+                email: form.querySelector('[name="dEmail"]').value,
+                phone: form.querySelector('[name="dPhone"]').value,
+                organization: form.querySelector('[name="dOrganization"]').value || '',
+                howHeard: form.querySelector('[name="dHowHeard"]').value || '',
+                submittedAt: new Date().toISOString(),
+                source: window.location.pathname
+            };
+        }
 
         // Show loading state
-        submitBtn.classList.add('btn-loading');
-        submitBtn.textContent = 'Submitting...';
+        const activeSubmitBtn = serviceType === 'event' ? submitBtn : document.getElementById('digitalSubmit');
+        activeSubmitBtn.classList.add('btn-loading');
+        activeSubmitBtn.textContent = 'Submitting...';
         errorEl.style.display = 'none';
 
         try {
@@ -212,7 +300,7 @@
 
             // Show success
             document.querySelectorAll('.quote-step').forEach(s => s.classList.remove('active'));
-            document.querySelector('.quote-progress').style.display = 'none';
+            document.querySelectorAll('.quote-progress').forEach(p => p.style.display = 'none');
             document.querySelector('.quote-header').style.display = 'none';
             successEl.style.display = 'block';
 
@@ -220,8 +308,11 @@
             console.error('Quote submission error:', err);
             errorEl.style.display = 'block';
         } finally {
-            submitBtn.classList.remove('btn-loading');
-            submitBtn.textContent = 'Submit Quote Request';
+            const activeBtn = document.querySelector('.btn-loading');
+            if (activeBtn) {
+                activeBtn.classList.remove('btn-loading');
+                activeBtn.textContent = activeBtn.id === 'digitalSubmit' ? 'Submit Project Request' : 'Submit Quote Request';
+            }
         }
     });
 

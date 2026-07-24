@@ -2407,3 +2407,66 @@ section {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
+
+/* --- Service Type Selector (modal first step) --- */
+.service-type-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.service-type-card {
+    cursor: pointer;
+}
+
+.service-type-card input {
+    display: none;
+}
+
+.service-type-content {
+    padding: 28px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius);
+    text-align: center;
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.service-type-content svg {
+    color: var(--color-text-muted);
+    transition: color var(--transition);
+}
+
+.service-type-content strong {
+    display: block;
+    font-size: 1rem;
+}
+
+.service-type-content span {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.service-type-card input:checked + .service-type-content {
+    border-color: var(--color-purple);
+    background: rgba(123, 47, 247, 0.08);
+    box-shadow: 0 0 0 2px rgba(123, 47, 247, 0.3);
+}
+
+.service-type-card input:checked + .service-type-content svg {
+    color: var(--color-cyan);
+}
+
+.service-type-content:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 480px) {
+    .service-type-cards {
+        grid-template-columns: 1fr;
+    }
+}
