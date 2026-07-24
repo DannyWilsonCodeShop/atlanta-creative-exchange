@@ -321,7 +321,7 @@
         });
 
         // Magnetic cursor effect on buttons
-        document.querySelectorAll('.btn').forEach(btn => {
+        document.querySelectorAll('.btn:not([href^="mailto"])').forEach(btn => {
             btn.addEventListener('mousemove', (e) => {
                 const rect = btn.getBoundingClientRect();
                 const x = e.clientX - rect.left - rect.width / 2;
