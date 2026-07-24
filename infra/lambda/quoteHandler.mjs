@@ -14,7 +14,8 @@ import { randomUUID } from 'crypto';
 const REGION = process.env.AWS_REGION || 'us-east-1';
 const TABLE_NAME = process.env.TABLE_NAME || 'ACE-Quotes';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'wilson.danny@me.com';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'info@atlantacreativeexchange.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'wilson.danny@me.com';
+const REPLY_TO_EMAIL = 'info@atlantacreativeexchange.com';
 const BEDROCK_MODEL_ID = 'anthropic.claude-haiku-4-5-20251001-v1:0';
 
 const dynamo = new DynamoDBClient({ region: REGION });
@@ -299,6 +300,7 @@ ${aiAnalysis}
 
     await ses.send(new SendEmailCommand({
         Source: FROM_EMAIL,
+        ReplyToAddresses: [REPLY_TO_EMAIL],
         Destination: { ToAddresses: [OWNER_EMAIL] },
         Message: {
             Subject: { Data: `[ACE Quote] ${data.eventType} — ${data.firstName} ${data.lastName} — ${data.eventDate}` },
@@ -343,6 +345,7 @@ async function sendCustomerConfirmation(data) {
 
     await ses.send(new SendEmailCommand({
         Source: FROM_EMAIL,
+        ReplyToAddresses: [REPLY_TO_EMAIL],
         Destination: { ToAddresses: [data.email] },
         Message: {
             Subject: { Data: `Your ACE Quote Request — We'll be in touch soon!` },
