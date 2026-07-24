@@ -165,7 +165,7 @@
                             <li>Open stage performances</li>
                             <li>Food and drinks</li>
                         </ul>
-                        <a href="#contact" class="btn btn-primary">Get on the List</a>
+                        <button class="btn btn-primary" id="getOnListBtn">Get on the List</button>
                     </div>
                 </div>
             </div>
@@ -331,6 +331,84 @@
             btn.addEventListener('mouseleave', () => {
                 btn.style.transform = '';
             });
+        });
+    </script>
+
+    <!-- Email List Signup Modal -->
+    <div class="email-list-overlay" id="emailListOverlay"></div>
+    <div class="email-list-modal" id="emailListModal">
+        <button class="quote-close" id="emailListClose">&times;</button>
+        <div class="email-list-inner" id="emailListForm">
+            <h3>Get on the List</h3>
+            <p>Sign up to hear about upcoming Creative Rest events, community gatherings, and ACE news. We'll only send the good stuff.</p>
+            <form id="emailSignupForm">
+                <div class="form-group">
+                    <label for="list-name">First Name</label>
+                    <input type="text" id="list-name" name="listName" required placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label for="list-email">Email</label>
+                    <input type="email" id="list-email" name="listEmail" required placeholder="your@email.com">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="emailListSubmit">Sign Me Up</button>
+                <p class="email-list-note">By signing up you agree to receive occasional emails about ACE events. Unsubscribe anytime.</p>
+            </form>
+        </div>
+        <div class="email-list-success" id="emailListSuccess" style="display:none;">
+            <h3>You're on the list!</h3>
+            <p>We'll let you know when something great is coming up. See you at the next Creative Rest.</p>
+            <button class="btn btn-primary" id="emailListSuccessClose">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Email list modal
+        const emailListOverlay = document.getElementById('emailListOverlay');
+        const emailListModal = document.getElementById('emailListModal');
+        const emailListClose = document.getElementById('emailListClose');
+        const emailListSuccessClose = document.getElementById('emailListSuccessClose');
+        const getOnListBtn = document.getElementById('getOnListBtn');
+
+        function openEmailList() {
+            emailListOverlay.classList.add('active');
+            emailListModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEmailList() {
+            emailListOverlay.classList.remove('active');
+            emailListModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (getOnListBtn) getOnListBtn.addEventListener('click', openEmailList);
+        emailListClose.addEventListener('click', closeEmailList);
+        emailListOverlay.addEventListener('click', closeEmailList);
+        emailListSuccessClose.addEventListener('click', closeEmailList);
+
+        document.getElementById('emailSignupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('list-name').value;
+            const email = document.getElementById('list-email').value;
+            const btn = document.getElementById('emailListSubmit');
+            btn.classList.add('btn-loading');
+            btn.textContent = 'Signing up...';
+
+            try {
+                const response = await fetch('https://zuq0ae5dqf.execute-api.us-east-1.amazonaws.com/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, source: 'creative-rest-list' })
+                });
+                if (!response.ok) throw new Error('Failed');
+                document.getElementById('emailListForm').style.display = 'none';
+                document.getElementById('emailListSuccess').style.display = 'block';
+            } catch (err) {
+                alert('Something went wrong. Please try again or email us at info@atlantacreativeexchange.com');
+            } finally {
+                btn.classList.remove('btn-loading');
+                btn.textContent = 'Sign Me Up';
+            }
         });
     </script>
 

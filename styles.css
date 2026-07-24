@@ -2621,3 +2621,97 @@ section {
         z-index: 10;
     }
 }
+
+/* --- Email List Modal --- */
+.email-list-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 9998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.email-list-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.email-list-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: 90%;
+    max-width: 420px;
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 36px 32px;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.email-list-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.email-list-inner h3,
+.email-list-success h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.email-list-inner p,
+.email-list-success p {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.email-list-inner .form-group {
+    margin-bottom: 16px;
+}
+
+.email-list-inner input {
+    width: 100%;
+    background: var(--color-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 1rem;
+    color: var(--color-text);
+    font-family: var(--font-main);
+}
+
+.email-list-inner input:focus {
+    outline: none;
+    border-color: var(--color-purple);
+}
+
+.email-list-note {
+    font-size: 0.75rem !important;
+    color: var(--color-text-muted) !important;
+    margin-top: 12px !important;
+    margin-bottom: 0 !important;
+    text-align: center;
+}
+
+.email-list-success {
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .email-list-modal {
+        width: 95%;
+        padding: 28px 20px;
+    }
+}

@@ -103,6 +103,14 @@ export const handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body);
+
+        // Route: /subscribe (email list signup)
+        const path = event.rawPath || event.requestContext?.http?.path || '';
+        if (path.includes('/subscribe')) {
+            return await handleSubscribe(body, headers);
+        }
+
+        // Route: /quote (default)
         const quoteId = randomUUID();
 
         // 1. Save to DynamoDB
@@ -231,7 +239,6 @@ ${PRICING_GUIDE}
 ${eventSummary}
 
 Format your response clearly with headers and bullet points. Be specific with dollar amounts.`;
-    } else {
     } else {
         eventSummary = `
 EVENT DETAILS:
@@ -439,4 +446,72 @@ function calculateDuration(start, end) {
     const hours = Math.floor(mins / 60);
     const remaining = mins % 60;
     return remaining > 0 ? `${hours}h ${remaining}m` : `${hours} hours`;
+}
+
+// === EMAIL LIST SUBSCRIBE ===
+async function handleSubscribe(data, headers) {
+    const { name, email, source } = data;
+
+    if (!email) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Email required' }) };
+    }
+
+    // Save to DynamoDB
+    await dynamo.send(new PutItemCommand({
+        TableName: 'ACE-Subscribers',
+        Item: {
+            email: { S: email.toLowerCase() },
+            name: { S: name || '' },
+            source: { S: source || '' },
+            subscribedAt: { S: new Date().toISOString() },
+            status: { S: 'active' }
+        }
+    }));
+
+    // Send confirmation email to subscriber
+    try {
+        await ses.send(new SendEmailCommand({
+            Source: FROM_EMAIL,
+            ReplyToAddresses: [REPLY_TO_EMAIL],
+            Destination: { ToAddresses: [email] },
+            Message: {
+                Subject: { Data: "You're on the ACE list!" },
+                Body: {
+                    Html: {
+                        Data: `<div style="font-family:-apple-system,sans-serif;max-width:500px;margin:0 auto;padding:32px;">
+<h2 style="color:#111;">You're on the list, ${name || 'friend'}!</h2>
+<p style="color:#555;line-height:1.6;">Thanks for signing up. We'll keep you in the loop on upcoming Creative Rest events, community gatherings, and other ACE happenings.</p>
+<p style="color:#555;line-height:1.6;">We only send emails when something good is coming. No spam, ever.</p>
+<p style="color:#555;line-height:1.6;">See you soon.</p>
+<p style="color:#555;">— The ACE Team</p>
+<hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+<p style="color:#999;font-size:12px;">Atlanta Creative Exchange | Atlanta, Georgia<br><a href="https://atlantacreativeexchange.com" style="color:#7b2ff7;">atlantacreativeexchange.com</a></p>
+</div>`
+                    }
+                }
+            }
+        }));
+    } catch (emailErr) {
+        console.error('Subscriber confirmation email failed:', emailErr);
+    }
+
+    // Notify owner
+    try {
+        await ses.send(new SendEmailCommand({
+            Source: FROM_EMAIL,
+            Destination: { ToAddresses: [OWNER_EMAIL] },
+            Message: {
+                Subject: { Data: `[ACE List] New subscriber: ${name || email}` },
+                Body: {
+                    Html: {
+                        Data: `<p><strong>New email list subscriber:</strong></p><p>Name: ${name || 'Not provided'}<br>Email: ${email}<br>Source: ${source || 'website'}<br>Time: ${new Date().toISOString()}</p>`
+                    }
+                }
+            }
+        }));
+    } catch (emailErr) {
+        console.error('Owner notification email failed:', emailErr);
+    }
+
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
 }
