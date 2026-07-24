@@ -7,18 +7,22 @@
  */
 
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { randomUUID } from 'crypto';
 
 const REGION = process.env.AWS_REGION || 'us-east-1';
 const TABLE_NAME = process.env.TABLE_NAME || 'ACE-Quotes';
+const AMPLIFY_QUOTE_TABLE = process.env.AMPLIFY_QUOTE_TABLE || 'Quote-7zcql4kvqrbfrax5eqpq3t3hmu-NONE';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'wilson.danny@me.com';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'wilson.danny@me.com';
 const REPLY_TO_EMAIL = 'info@atlantacreativeexchange.com';
 const BEDROCK_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 
-const dynamo = new DynamoDBClient({ region: REGION });
+const dynamoRaw = new DynamoDBClient({ region: REGION });
+const dynamo = dynamoRaw;
+const docClient = DynamoDBDocumentClient.from(dynamoRaw);
 const ses = new SESClient({ region: REGION });
 const bedrock = new BedrockRuntimeClient({ region: REGION });
 
@@ -113,16 +117,19 @@ export const handler = async (event) => {
         // Route: /quote (default)
         const quoteId = randomUUID();
 
-        // 1. Save to DynamoDB
+        // 1. Save to DynamoDB (legacy table)
         await saveQuote(quoteId, body);
 
         // 2. Call Bedrock for AI analysis
         const aiAnalysis = await analyzeWithBedrock(body);
 
-        // 3. Send owner email (full details + AI analysis)
+        // 3. Save to Amplify table (admin portal)
+        await saveToAmplifyTable(quoteId, body, aiAnalysis);
+
+        // 4. Send owner email (full details + AI analysis)
         await sendOwnerEmail(quoteId, body, aiAnalysis);
 
-        // 4. Send customer confirmation
+        // 5. Send customer confirmation
         await sendCustomerConfirmation(body);
 
         return {
@@ -194,6 +201,74 @@ async function saveQuote(quoteId, data) {
     }
 
     await dynamo.send(new PutItemCommand({ TableName: TABLE_NAME, Item: item }));
+}
+
+// === SAVE TO AMPLIFY TABLE (Admin Portal) ===
+async function saveToAmplifyTable(quoteId, data, aiAnalysis) {
+    const now = new Date().toISOString();
+    const item = {
+        id: quoteId,
+        __typename: 'Quote',
+        serviceType: data.serviceType || 'event',
+        status: 'new',
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        organization: data.organization || null,
+        howHeard: data.howHeard || null,
+        aiAnalysis: aiAnalysis || null,
+        source: data.source || null,
+        createdAt: now,
+        updatedAt: now,
+    };
+
+    if (data.serviceType === 'digital') {
+        item.digitalServices = data.digitalServices || [];
+        item.projectDescription = data.projectDescription || null;
+        item.hasExisting = data.hasExisting || null;
+        item.existingUrl = data.existingUrl || null;
+        item.pageCount = data.pageCount || null;
+        item.timeline = data.timeline || null;
+        item.features = data.features || [];
+        item.designDirection = data.designDirection || null;
+        item.referenceSites = data.referenceSites || null;
+        item.digitalBudget = data.digitalBudget || null;
+        item.ongoingSupport = data.ongoingSupport || null;
+        item.digitalNotes = data.digitalNotes || null;
+    } else {
+        item.eventType = data.eventType || null;
+        item.eventDates = JSON.stringify(data.eventDates || []);
+        item.sameServicesAllDates = data.sameServicesAllDates ?? true;
+        item.services = data.services || [];
+        item.perDayDetails = data.perDayDetails ? JSON.stringify(data.perDayDetails) : null;
+        item.genre = data.genre || null;
+        item.speeches = data.speeches || null;
+        item.budget = data.budget || null;
+        item.venueName = data.venueName || null;
+        item.venueAddress = data.venueAddress || null;
+        item.roomName = data.roomName || null;
+        item.floorAccess = data.floorAccess || null;
+        item.indoorOutdoor = data.indoorOutdoor || null;
+        item.roomSize = data.roomSize || null;
+        item.powerAvailability = data.powerAvailability || null;
+        item.loadInTime = data.loadInTime || null;
+        item.micWireless = data.micWireless || null;
+        item.micWired = data.micWired || null;
+        item.auxInputs = data.auxInputs || null;
+        item.monitorSpeakers = data.monitorSpeakers || null;
+        item.additionalNotes = data.additionalNotes || null;
+    }
+
+    try {
+        await docClient.send(new PutCommand({
+            TableName: AMPLIFY_QUOTE_TABLE,
+            Item: item,
+        }));
+    } catch (err) {
+        console.error('Failed to save to Amplify table:', err);
+        // Don't throw — this is secondary, legacy table is primary
+    }
 }
 
 // === BEDROCK AI ANALYSIS ===
