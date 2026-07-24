@@ -113,12 +113,19 @@
     function updateStep1NextTarget() {
         const servicesGroup = document.getElementById('servicesGroup');
         const genreGroup = document.getElementById('genreGroup');
-        if (eventDateCount > 1 && sameServicesCheck && !sameServicesCheck.checked) {
+        const sameLocation = document.getElementById('sameLocationCheck');
+        const needsPerDay = eventDateCount > 1 && sameServicesCheck && (!sameServicesCheck.checked || (sameLocation && !sameLocation.checked));
+
+        if (needsPerDay) {
             step1NextBtn.dataset.next = '1b';
             step1NextBtn.textContent = 'Next: Per-Day Details';
-            // Hide services on step 1 — they'll pick per day
-            if (servicesGroup) servicesGroup.style.display = 'none';
-            if (genreGroup) genreGroup.style.display = 'none';
+            // Hide services on step 1 if different services per day
+            if (!sameServicesCheck.checked) {
+                if (servicesGroup) servicesGroup.style.display = 'none';
+                if (genreGroup) genreGroup.style.display = 'none';
+            } else {
+                if (servicesGroup) servicesGroup.style.display = 'block';
+            }
         } else {
             step1NextBtn.dataset.next = '2';
             step1NextBtn.textContent = 'Next: Venue Details';
@@ -130,11 +137,17 @@
         sameServicesCheck.addEventListener('change', updateStep1NextTarget);
     }
 
+    const sameLocationCheck = document.getElementById('sameLocationCheck');
+    if (sameLocationCheck) {
+        sameLocationCheck.addEventListener('change', updateStep1NextTarget);
+    }
+
     // Generate per-day service cards when entering step 1b
     function buildPerDayCards() {
         const container = document.getElementById('perDayContainer');
         if (!container) return;
         container.innerHTML = '';
+        const sameLocation = document.getElementById('sameLocationCheck')?.checked ?? true;
         const blocks = eventDatesContainer.querySelectorAll('.event-date-block');
         blocks.forEach((block, i) => {
             const dateInput = block.querySelector('input[type="date"]');
@@ -145,12 +158,41 @@
                 const dt = new Date(y, m - 1, d);
                 dateDisplay = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             }
+
+            let venueHtml = '';
+            if (!sameLocation) {
+                venueHtml = `
+                    <div class="form-group">
+                        <label>Venue Name *</label>
+                        <input type="text" name="perDay[${i}].venueName" placeholder="Name of the venue" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Venue Address *</label>
+                        <input type="text" name="perDay[${i}].venueAddress" placeholder="Full street address" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Room / Space</label>
+                            <input type="text" name="perDay[${i}].roomName" placeholder="e.g. Ballroom A">
+                        </div>
+                        <div class="form-group">
+                            <label>Indoor / Outdoor</label>
+                            <select name="perDay[${i}].indoorOutdoor">
+                                <option value="Indoor">Indoor</option>
+                                <option value="Outdoor">Outdoor</option>
+                                <option value="Both">Both</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
             const card = document.createElement('div');
             card.className = 'per-day-card';
             card.innerHTML = `
                 <div class="per-day-header">
                     <strong>Day ${i + 1}</strong> — ${dateDisplay}
                 </div>
+                ${venueHtml}
                 <div class="form-group">
                     <label>Services needed this day *</label>
                     <div class="checkbox-group">
