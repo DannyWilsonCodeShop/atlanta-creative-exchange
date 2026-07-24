@@ -2742,3 +2742,38 @@ section {
         max-width: 300px;
     }
 }
+
+/* --- Gallery: horizontal scroll on mobile instead of grid --- */
+@media (max-width: 580px) {
+    .gallery {
+        padding: 60px 0;
+    }
+
+    .gallery .section-subtitle {
+        margin-bottom: 24px;
+    }
+
+    .gallery-grid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        gap: 12px;
+        padding-bottom: 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .gallery-item {
+        flex: 0 0 70vw;
+        height: 220px;
+        scroll-snap-align: start;
+        border-radius: var(--radius-sm);
+    }
+
+    .gallery-item-tall,
+    .gallery-item-wide {
+        grid-row: auto;
+        grid-column: auto;
+        flex: 0 0 70vw;
+        height: 220px;
+    }
+}
