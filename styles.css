@@ -1415,24 +1415,27 @@ section {
     .nav-links {
         position: fixed;
         top: 72px;
-        left: 0;
         right: 0;
+        width: 240px;
+        height: auto;
+        max-height: 0;
         background: rgba(14, 14, 14, 0.98);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         flex-direction: column;
-        align-items: center;
+        align-items: flex-end;
         gap: 0;
-        padding: 0;
-        max-height: 0;
+        padding: 0 24px;
         overflow: hidden;
         transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.4s ease;
+        border-bottom-left-radius: var(--radius);
+        border-left: 1px solid rgba(255, 255, 255, 0.05);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .nav-links.active {
         max-height: 420px;
-        padding: 24px 0;
+        padding: 24px;
         gap: 20px;
     }
 
