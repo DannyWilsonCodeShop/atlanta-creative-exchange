@@ -311,31 +311,35 @@
             pillar.style.transitionDelay = `${i * 0.15}s`;
         });
 
-        // Parallax on scroll
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            document.querySelectorAll('.parallax').forEach(el => {
-                const speed = el.dataset.speed || 0.3;
-                const rect = el.getBoundingClientRect();
-                if (rect.top < window.innerHeight && rect.bottom > 0) {
-                    const yPos = (rect.top * speed);
-                    el.querySelector('img').style.transform = `translateY(${yPos}px) scale(1.1)`;
-                }
+        // Parallax on scroll (desktop only)
+        if (!('ontouchstart' in window)) {
+            window.addEventListener('scroll', () => {
+                const scrolled = window.pageYOffset;
+                document.querySelectorAll('.parallax').forEach(el => {
+                    const speed = el.dataset.speed || 0.3;
+                    const rect = el.getBoundingClientRect();
+                    if (rect.top < window.innerHeight && rect.bottom > 0) {
+                        const yPos = (rect.top * speed);
+                        el.querySelector('img').style.transform = `translateY(${yPos}px) scale(1.1)`;
+                    }
+                });
             });
-        });
+        }
 
-        // Magnetic cursor effect on buttons
-        document.querySelectorAll('.btn:not([href^="mailto"])').forEach(btn => {
-            btn.addEventListener('mousemove', (e) => {
-                const rect = btn.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
-                btn.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+        // Magnetic cursor effect on buttons (desktop only)
+        if (!('ontouchstart' in window)) {
+            document.querySelectorAll('.btn:not([href^="mailto"])').forEach(btn => {
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    btn.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = '';
+                });
             });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = '';
-            });
-        });
+        }
     </script>
 
     <!-- Email List Signup Modal -->

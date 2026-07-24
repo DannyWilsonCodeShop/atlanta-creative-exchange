@@ -287,18 +287,20 @@
             });
         });
 
-        // Magnetic cursor on buttons
-        document.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('mousemove', (e) => {
-                const rect = btn.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
-                btn.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+        // Magnetic cursor on buttons (desktop only)
+        if (!('ontouchstart' in window)) {
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    btn.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = '';
+                });
             });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = '';
-            });
-        });
+        }
     </script>
 
     <!-- Quote Modal System -->
