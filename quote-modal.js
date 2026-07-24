@@ -220,6 +220,29 @@
             buildPerDayCards();
         }
 
+        // Show/hide equipment sections based on selected services
+        if (stepNum === 3 || stepNum === '3') {
+            const selectedServices = Array.from(form.querySelectorAll('[name="services"]:checked')).map(c => c.value);
+            const hasPAOnly = selectedServices.includes('PA System') && !selectedServices.includes('DJ') && !selectedServices.includes('Live Band');
+            const hasDJOrBand = selectedServices.includes('DJ') || selectedServices.includes('Live Band');
+            const hostingOnly = selectedServices.includes('Event Hosting') && !hasDJOrBand && !selectedServices.includes('PA System');
+
+            const paSection = document.getElementById('paEquipmentSection');
+            const perfSection = document.getElementById('performanceSection');
+            const hostSection = document.getElementById('hostingOnlySection');
+            const bandTypeGroup = document.getElementById('bandTypeGroup');
+
+            if (paSection) paSection.style.display = hasPAOnly ? 'block' : 'none';
+            if (perfSection) perfSection.style.display = hasDJOrBand ? 'block' : 'none';
+            if (hostSection) hostSection.style.display = hostingOnly ? 'block' : 'none';
+            if (bandTypeGroup) bandTypeGroup.style.display = selectedServices.includes('Live Band') ? 'block' : 'none';
+
+            // If both PA and DJ/Band selected, show both
+            if (selectedServices.includes('PA System') && hasDJOrBand) {
+                if (paSection) paSection.style.display = 'block';
+            }
+        }
+
         // Update progress indicators
         const isDigital = typeof stepNum === 'string' && stepNum.startsWith('d');
         const progressSteps = document.querySelectorAll(isDigital ? '#digitalProgress .progress-step' : '#eventProgress .progress-step');
@@ -365,7 +388,8 @@
                         notes: card.querySelector(`[name="perDay[${i}].notes"]`)?.value || ''
                     }))
                     : null,
-                genre: form.querySelector('[name="genre"]').value || '',
+                genre: form.querySelector('[name="genre"]')?.value || form.querySelector('[name="genre2"]')?.value || '',
+                bandType: form.querySelector('[name="bandType"]')?.value || '',
                 speeches: form.querySelector('[name="speeches"]').value,
                 budget: form.querySelector('[name="budget"]').value,
                 venueName: form.querySelector('[name="venueName"]').value,

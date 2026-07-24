@@ -2963,3 +2963,18 @@ section {
         grid-template-columns: 1fr;
     }
 }
+
+/* --- Form note box --- */
+.form-note-box {
+    padding: 14px 16px;
+    background: rgba(0, 180, 216, 0.06);
+    border: 1px solid rgba(0, 180, 216, 0.15);
+    border-radius: var(--radius-sm);
+    margin-top: 16px;
+}
+
+.form-note-box p {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}

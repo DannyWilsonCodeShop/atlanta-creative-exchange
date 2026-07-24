@@ -272,49 +272,84 @@
                 </div>
             </div>
 
-            <!-- Step 3: Equipment Needs -->
+            <!-- Step 3: Equipment & Performance Details -->
             <div class="quote-step" id="step3">
-                <h3>Equipment & Technical Needs</h3>
+                <!-- PA System Only: full equipment questions -->
+                <div id="paEquipmentSection" style="display:none;">
+                    <h3>Equipment & Technical Needs</h3>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="q-mic-wireless">Wireless Microphones ($$)</label>
-                        <select id="q-mic-wireless" name="micWireless">
-                            <option value="0">0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5+">5+</option>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="q-mic-wireless">Wireless Microphones ($$)</label>
+                            <select id="q-mic-wireless" name="micWireless">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5+">5+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="q-mic-wired">Wired Microphones ($)</label>
+                            <select id="q-mic-wired" name="micWired">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5+">5+</option>
+                            </select>
+                        </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="q-mic-wired">Wired Microphones ($)</label>
-                        <select id="q-mic-wired" name="micWired">
-                            <option value="0">0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5+">5+</option>
+                        <label for="q-aux-inputs">Aux / Instrument Inputs Needed</label>
+                        <input type="text" id="q-aux-inputs" name="auxInputs" placeholder="e.g. 2 guitars, 1 keyboard, laptop aux">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="q-monitors">Monitor Speakers Needed? (for performers on stage)</label>
+                        <select id="q-monitors" name="monitorSpeakers">
+                            <option value="">Select</option>
+                            <option value="None">None needed</option>
+                            <option value="1-2">1–2 monitors</option>
+                            <option value="3-4">3–4 monitors</option>
+                            <option value="Not Sure">Not sure</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="q-aux-inputs">Aux / Instrument Inputs Needed</label>
-                    <input type="text" id="q-aux-inputs" name="auxInputs" placeholder="e.g. 2 guitars, 1 keyboard, laptop aux, DJ controller">
+                <!-- DJ / Live Band: performance-specific questions -->
+                <div id="performanceSection" style="display:none;">
+                    <h3>Performance Details</h3>
+
+                    <div class="form-group">
+                        <label for="q-genre2">Music Genre / Vibe *</label>
+                        <input type="text" id="q-genre2" name="genre2" placeholder="e.g. R&B, Hip-Hop, Jazz, Top 40, Afrobeats, mix of everything">
+                    </div>
+
+                    <div class="form-group" id="bandTypeGroup" style="display:none;">
+                        <label for="q-band-type">Type of Live Music</label>
+                        <select id="q-band-type" name="bandType">
+                            <option value="">Select</option>
+                            <option value="Instrumental">Instrumental (no vocals)</option>
+                            <option value="Full Show">Full show (vocals + instruments)</option>
+                            <option value="Acoustic">Acoustic / unplugged</option>
+                            <option value="DJ + Live">DJ + live musicians together</option>
+                            <option value="Not Sure">Not sure — help me decide</option>
+                        </select>
+                    </div>
+
+                    <div class="form-note-box">
+                        <p><strong>Note:</strong> 1 wireless microphone is included for the event organizer (announcements, toasts, etc.). All performance equipment is handled by our team.</p>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="q-monitors">Monitor Speakers Needed? (for performers on stage)</label>
-                    <select id="q-monitors" name="monitorSpeakers">
-                        <option value="">Select</option>
-                        <option value="None">None needed</option>
-                        <option value="1-2">1–2 monitors</option>
-                        <option value="3-4">3–4 monitors</option>
-                        <option value="Not Sure">Not sure</option>
-                    </select>
+                <!-- Event Hosting only: minimal -->
+                <div id="hostingOnlySection" style="display:none;">
+                    <h3>Event Details</h3>
+                    <p class="text-sm text-ace-muted mb-4">No additional equipment needed for hosting & crowd support. Our team brings what they need.</p>
                 </div>
 
                 <div class="form-group">
