@@ -84,15 +84,15 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Date *</label>
-                                    <input type="date" name="eventDates[0].date" required>
+                                    <input type="date" name="eventDates[0].date" required onclick="this.showPicker()">
                                 </div>
                                 <div class="form-group">
                                     <label>Start Time *</label>
-                                    <input type="time" name="eventDates[0].startTime" required>
+                                    <input type="time" name="eventDates[0].startTime" required onclick="this.showPicker()">
                                 </div>
                                 <div class="form-group">
                                     <label>End Time *</label>
-                                    <input type="time" name="eventDates[0].endTime" required>
+                                    <input type="time" name="eventDates[0].endTime" required onclick="this.showPicker()">
                                 </div>
                             </div>
                         </div>
@@ -278,7 +278,7 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="q-mic-wireless">Wireless Microphones</label>
+                        <label for="q-mic-wireless">Wireless Microphones ($$)</label>
                         <select id="q-mic-wireless" name="micWireless">
                             <option value="0">0</option>
                             <option value="1">1</option>
@@ -289,7 +289,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="q-mic-wired">Wired Microphones</label>
+                        <label for="q-mic-wired">Wired Microphones ($)</label>
                         <select id="q-mic-wired" name="micWired">
                             <option value="0">0</option>
                             <option value="1">1</option>

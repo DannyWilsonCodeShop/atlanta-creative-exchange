@@ -78,15 +78,15 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Date *</label>
-                        <input type="date" name="eventDates[${eventDateCount - 1}].date" required>
+                        <input type="date" name="eventDates[${eventDateCount - 1}].date" required onclick="this.showPicker()">
                     </div>
                     <div class="form-group">
                         <label>Start Time *</label>
-                        <input type="time" name="eventDates[${eventDateCount - 1}].startTime" required>
+                        <input type="time" name="eventDates[${eventDateCount - 1}].startTime" required onclick="this.showPicker()">
                     </div>
                     <div class="form-group">
                         <label>End Time *</label>
-                        <input type="time" name="eventDates[${eventDateCount - 1}].endTime" required>
+                        <input type="time" name="eventDates[${eventDateCount - 1}].endTime" required onclick="this.showPicker()">
                     </div>
                 </div>
             `;
@@ -150,13 +150,13 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Wireless Mics</label>
+                        <label>Wireless Mics ($$)</label>
                         <select name="perDay[${i}].micWireless">
                             <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Wired Mics</label>
+                        <label>Wired Mics ($)</label>
                         <select name="perDay[${i}].micWired">
                             <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
                         </select>
