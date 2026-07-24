@@ -485,7 +485,7 @@ async function sendCustomerConfirmation(data) {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f8f8; color: #222; padding: 32px;">
 <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 36px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
 
-<img src="https://atlantacreativeexchange.com/Resources/Final%20Drafts-03.png" alt="Atlanta Creative Exchange" style="height: 48px; margin-bottom: 24px;">
+<img src="https://atlantacreativeexchange.com/Resources/Final%20Drafts-03.png" alt="Atlanta Creative Exchange" style="height: 48px; width: auto; max-width: 200px; margin-bottom: 24px;">
 
 <h1 style="font-size: 24px; color: #111; margin-bottom: 8px;">Thanks, ${data.firstName}!</h1>
 <p style="color: #555; font-size: 16px; line-height: 1.6;">We've received your quote request and a member of our sales team will reach out within <strong>24 hours</strong> with a personalized quote or any follow-up questions.</p>
