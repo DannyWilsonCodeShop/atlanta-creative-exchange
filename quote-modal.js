@@ -431,16 +431,19 @@
             }
         });
 
-        // Step 1 (event): check at least one service selected
+        // Step 1 (event): check at least one service selected (only if visible)
         if (stepId === 1) {
-            const checked = step.querySelectorAll('input[name="services"]:checked');
-            if (checked.length === 0) {
-                valid = false;
-                const grp = step.querySelector('.checkbox-group');
-                if (grp) grp.style.outline = '1px solid var(--color-magenta)';
-            } else {
-                const grp = step.querySelector('.checkbox-group');
-                if (grp) grp.style.outline = '';
+            const servicesGroup = document.getElementById('servicesGroup');
+            if (servicesGroup && servicesGroup.style.display !== 'none') {
+                const checked = step.querySelectorAll('input[name="services"]:checked');
+                if (checked.length === 0) {
+                    valid = false;
+                    const grp = step.querySelector('.checkbox-group');
+                    if (grp) grp.style.outline = '1px solid var(--color-magenta)';
+                } else {
+                    const grp = step.querySelector('.checkbox-group');
+                    if (grp) grp.style.outline = '';
+                }
             }
         }
 
