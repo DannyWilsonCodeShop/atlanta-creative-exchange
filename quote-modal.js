@@ -184,6 +184,17 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Venue Size</label>
+                        <select name="perDay[${i}].roomSize">
+                            <option value="">Select size</option>
+                            <option value="Small">Small (up to 30 people)</option>
+                            <option value="Small-Medium">Small-Medium (30–75 people)</option>
+                            <option value="Medium">Medium (75–200 people)</option>
+                            <option value="Medium-Large">Medium-Large (200–500 people)</option>
+                            <option value="Large">Large (500+ people)</option>
+                        </select>
+                    </div>
                 `;
             }
             const card = document.createElement('div');
