@@ -447,7 +447,7 @@
             }
         }
 
-        // Step 2 (event): check room size radio
+        // Step 2 (event): check room size radio (only if step is visible/reached)
         if (stepId === 2) {
             const roomChecked = step.querySelector('input[name="roomSize"]:checked');
             if (!roomChecked) {
@@ -457,6 +457,17 @@
             } else {
                 const cards = step.querySelector('.radio-cards');
                 if (cards) cards.style.outline = '';
+            }
+        }
+
+        // Step 4 (contact): check terms agreed
+        if (stepId === 4) {
+            const termsCheck = document.getElementById('q-terms');
+            if (termsCheck && !termsCheck.checked) {
+                valid = false;
+                termsCheck.parentElement.style.color = 'var(--color-magenta)';
+            } else if (termsCheck) {
+                termsCheck.parentElement.style.color = '';
             }
         }
 
@@ -539,21 +550,21 @@
                     : null,
                 genre: form.querySelector('[name="genre"]')?.value || form.querySelector('[name="genre2"]')?.value || '',
                 bandType: form.querySelector('[name="bandType"]')?.value || '',
-                speeches: form.querySelector('[name="speeches"]').value,
-                budget: form.querySelector('[name="budget"]').value,
-                venueName: form.querySelector('[name="venueName"]').value,
-                venueAddress: form.querySelector('[name="venueAddress"]').value,
-                roomName: form.querySelector('[name="roomName"]').value || '',
-                floorAccess: form.querySelector('[name="floorAccess"]').value,
-                indoorOutdoor: form.querySelector('[name="indoorOutdoor"]').value,
-                roomSize: form.querySelector('[name="roomSize"]:checked').value,
-                powerAvailability: form.querySelector('[name="powerAvailability"]').value,
-                loadInTime: form.querySelector('[name="loadInTime"]').value || '',
-                micWireless: form.querySelector('[name="micWireless"]').value,
-                micWired: form.querySelector('[name="micWired"]').value,
-                auxInputs: form.querySelector('[name="auxInputs"]').value || '',
-                monitorSpeakers: form.querySelector('[name="monitorSpeakers"]').value,
-                additionalNotes: form.querySelector('[name="additionalNotes"]').value || '',
+                speeches: form.querySelector('[name="speeches"]')?.value || '',
+                budget: form.querySelector('[name="budget"]')?.value || '',
+                venueName: form.querySelector('[name="venueName"]')?.value || '',
+                venueAddress: form.querySelector('[name="venueAddress"]')?.value || '',
+                roomName: form.querySelector('[name="roomName"]')?.value || '',
+                floorAccess: form.querySelector('[name="floorAccess"]')?.value || '',
+                indoorOutdoor: form.querySelector('[name="indoorOutdoor"]')?.value || '',
+                roomSize: form.querySelector('[name="roomSize"]:checked')?.value || '',
+                powerAvailability: form.querySelector('[name="powerAvailability"]')?.value || '',
+                loadInTime: form.querySelector('[name="loadInTime"]')?.value || '',
+                micWireless: form.querySelector('[name="micWireless"]')?.value || '0',
+                micWired: form.querySelector('[name="micWired"]')?.value || '0',
+                auxInputs: form.querySelector('[name="auxInputs"]')?.value || '',
+                monitorSpeakers: form.querySelector('[name="monitorSpeakers"]')?.value || '',
+                additionalNotes: form.querySelector('[name="additionalNotes"]')?.value || '',
                 firstName: form.querySelector('[name="firstName"]').value,
                 lastName: form.querySelector('[name="lastName"]').value,
                 email: form.querySelector('[name="email"]').value,
