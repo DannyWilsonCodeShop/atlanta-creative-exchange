@@ -114,13 +114,18 @@
     function updateStep1NextTarget() {
         const servicesGroup = document.getElementById('servicesGroup');
         const genreGroup = document.getElementById('genreGroup');
+        const speechesGroup = document.getElementById('speechesGroup');
         const sameLocation = document.getElementById('sameLocationCheck');
         const needsPerDay = eventDateCount > 1 && sameServicesCheck && (!sameServicesCheck.checked || (sameLocation && !sameLocation.checked));
+
+        // Hide speeches on step 1 when multi-day (asked per-day instead)
+        if (speechesGroup) {
+            speechesGroup.style.display = eventDateCount > 1 ? 'none' : 'block';
+        }
 
         if (needsPerDay) {
             step1NextBtn.dataset.next = '1b';
             step1NextBtn.textContent = 'Next: Per-Day Details';
-            // Hide services on step 1 if different services per day
             if (!sameServicesCheck.checked) {
                 if (servicesGroup) servicesGroup.style.display = 'none';
                 if (genreGroup) genreGroup.style.display = 'none';
@@ -319,6 +324,15 @@
 
         // Notes for all
         html += `
+            <div class="form-group">
+                <label>Speeches or toasts this day?</label>
+                <select name="perDay[${dayIndex}].speeches">
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Maybe">Not sure yet</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label>Event flow & special instructions</label>
                 <input type="text" name="perDay[${dayIndex}].notes" placeholder="e.g. Ceremony 5pm, cocktail hour 6pm, reception 7pm. Any special requests?">
