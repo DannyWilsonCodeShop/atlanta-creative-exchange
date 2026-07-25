@@ -23,6 +23,7 @@
     const progressSteps = document.querySelectorAll('.progress-step');
 
     let currentStep = 1;
+    const stepHistory = [];
 
     // === MODAL OPEN/CLOSE ===
     function openModal() {
@@ -337,6 +338,7 @@
             return;
         }
         document.querySelector('.service-type-cards').style.outline = '';
+        stepHistory.push('serviceType');
         document.getElementById('stepServiceType').classList.remove('active');
 
         if (selected.value === 'event') {
@@ -505,17 +507,19 @@
             const nextStep = btn.dataset.next;
             const next = (nextStep.startsWith('d') || nextStep === '1b') ? nextStep : parseInt(nextStep);
             if (validateStep(currentStep)) {
+                stepHistory.push(currentStep);
                 showStep(next);
             }
         });
     });
 
-    // Prev buttons
+    // Prev buttons — use history stack instead of hardcoded destinations
     document.querySelectorAll('.step-prev').forEach(btn => {
         btn.addEventListener('click', () => {
-            const prevStep = btn.dataset.prev;
-            const prev = prevStep === 'serviceType' ? 'serviceType' : (prevStep.startsWith('d') ? prevStep : parseInt(prevStep));
-            showStep(prev);
+            if (stepHistory.length > 0) {
+                const prev = stepHistory.pop();
+                showStep(prev);
+            }
         });
     });
 
