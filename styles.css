@@ -2978,3 +2978,16 @@ section {
     color: var(--color-text-muted);
     line-height: 1.5;
 }
+
+/* --- Footer admin link --- */
+.footer-admin-link {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    opacity: 0.5;
+    transition: opacity var(--transition);
+}
+
+.footer-admin-link:hover {
+    opacity: 1;
+    color: var(--color-cyan);
+}
