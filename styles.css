@@ -2991,3 +2991,12 @@ section {
     opacity: 1;
     color: var(--color-cyan);
 }
+
+/* --- Portal nav link --- */
+.nav-portal-link {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600 !important;
+}
