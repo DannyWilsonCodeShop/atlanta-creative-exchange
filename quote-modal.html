@@ -9,6 +9,10 @@
         </div>
 
         <form class="quote-form" id="quoteForm" novalidate>
+            <!-- Honeypot — hidden from humans, bots fill it -->
+            <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+                <input type="text" name="honeypot" tabindex="-1" autocomplete="off">
+            </div>
             <!-- Service Type Selector -->
             <div class="quote-step active" id="stepServiceType">
                 <h3>What can we help you with?</h3>

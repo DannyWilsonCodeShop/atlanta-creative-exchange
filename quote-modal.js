@@ -601,7 +601,8 @@
                 organization: form.querySelector('[name="organization"]').value || '',
                 howHeard: form.querySelector('[name="howHeard"]').value,
                 submittedAt: new Date().toISOString(),
-                source: window.location.pathname
+                source: window.location.pathname,
+                honeypot: form.querySelector('[name="honeypot"]')?.value || '',
             };
         } else {
             if (!validateStep('d3')) return;
@@ -626,7 +627,8 @@
                 organization: form.querySelector('[name="dOrganization"]').value || '',
                 howHeard: form.querySelector('[name="dHowHeard"]').value || '',
                 submittedAt: new Date().toISOString(),
-                source: window.location.pathname
+                source: window.location.pathname,
+                honeypot: form.querySelector('[name="honeypot"]')?.value || '',
             };
         }
 
