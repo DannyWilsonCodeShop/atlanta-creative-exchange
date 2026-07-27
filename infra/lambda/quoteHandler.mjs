@@ -143,6 +143,11 @@ export const handler = async (event) => {
             return await handleCreateUser(body, headers);
         }
 
+        // Route: /send-quote (generate and email branded quote to customer)
+        if (path.includes('/send-quote')) {
+            return await handleSendQuote(body, headers);
+        }
+
         // Route: /quote (default)
         const quoteId = randomUUID();
 
@@ -600,6 +605,144 @@ async function handleCreateUser(data, headers) {
         }
         console.error('Create user error:', err);
         return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || 'Failed to create user' }) };
+    }
+}
+
+// === SEND QUOTE (Generate branded quote and email to customer) ===
+async function handleSendQuote(data, headers) {
+    const { quoteId, clientName, clientEmail, eventType, eventDates, services, venueName,
+            roomSize, lineItems, subtotal, discount, discountReason, total,
+            depositRequired, notes, validUntil } = data;
+
+    if (!clientEmail || !lineItems || !total) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields' }) };
+    }
+
+    const dateDisplay = (eventDates || []).map((d, i) => 
+        `<tr><td style="padding:4px 0;color:#a0a0a0;">Day ${i+1}</td><td style="padding:4px 0;">${d.date || ''} (${d.startTime || ''} – ${d.endTime || ''})</td></tr>`
+    ).join('');
+
+    const lineItemsHtml = (lineItems || []).map(item => `
+        <tr>
+            <td style="padding:10px 0;border-bottom:1px solid #eee;">${item.description}</td>
+            <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
+            <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;">$${item.unitPrice?.toLocaleString()}</td>
+            <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;">$${item.total?.toLocaleString()}</td>
+        </tr>
+    `).join('');
+
+    const quoteHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f8f8;">
+<div style="max-width:650px;margin:0 auto;background:#fff;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0e0e0e 0%,#1a1a2e 100%);padding:40px;text-align:center;">
+        <h1 style="margin:0;font-size:28px;background:linear-gradient(135deg,#00b4d8,#7b2ff7,#e91e8c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Atlanta Creative Exchange</h1>
+        <p style="margin:8px 0 0;color:#a0a0a0;font-size:14px;">A hub for cultural and self expression through music, art, and technology.</p>
+    </div>
+
+    <!-- Quote Title -->
+    <div style="padding:32px 40px 0;">
+        <h2 style="margin:0 0 4px;font-size:22px;color:#111;">Quote for ${clientName}</h2>
+        <p style="margin:0;color:#666;font-size:14px;">Quote #${(quoteId || '').slice(0,8).toUpperCase()} • ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+    </div>
+
+    <!-- Event Summary -->
+    <div style="padding:24px 40px;">
+        <table style="width:100%;font-size:14px;color:#333;">
+            <tr><td style="padding:4px 0;color:#a0a0a0;width:120px;">Event Type</td><td style="padding:4px 0;font-weight:500;">${eventType || '—'}</td></tr>
+            ${dateDisplay}
+            <tr><td style="padding:4px 0;color:#a0a0a0;">Services</td><td style="padding:4px 0;">${(services || []).join(', ') || '—'}</td></tr>
+            <tr><td style="padding:4px 0;color:#a0a0a0;">Venue</td><td style="padding:4px 0;">${venueName || '—'}</td></tr>
+            <tr><td style="padding:4px 0;color:#a0a0a0;">Size</td><td style="padding:4px 0;">${roomSize || '—'}</td></tr>
+        </table>
+    </div>
+
+    <!-- Line Items -->
+    <div style="padding:0 40px 24px;">
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:2px solid #111;">
+                    <th style="padding:10px 0;text-align:left;font-size:12px;text-transform:uppercase;color:#666;">Description</th>
+                    <th style="padding:10px 0;text-align:center;font-size:12px;text-transform:uppercase;color:#666;">Qty</th>
+                    <th style="padding:10px 0;text-align:right;font-size:12px;text-transform:uppercase;color:#666;">Price</th>
+                    <th style="padding:10px 0;text-align:right;font-size:12px;text-transform:uppercase;color:#666;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${lineItemsHtml}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Totals -->
+    <div style="padding:0 40px 32px;">
+        <table style="width:100%;font-size:14px;margin-left:auto;max-width:280px;float:right;">
+            <tr><td style="padding:6px 0;color:#666;">Subtotal</td><td style="padding:6px 0;text-align:right;">$${subtotal?.toLocaleString()}</td></tr>
+            ${discount ? `<tr><td style="padding:6px 0;color:#22c55e;">Discount${discountReason ? ` (${discountReason})` : ''}</td><td style="padding:6px 0;text-align:right;color:#22c55e;">-$${discount?.toLocaleString()}</td></tr>` : ''}
+            <tr style="border-top:2px solid #111;"><td style="padding:12px 0;font-size:18px;font-weight:700;">Total</td><td style="padding:12px 0;text-align:right;font-size:18px;font-weight:700;">$${total?.toLocaleString()}</td></tr>
+            ${depositRequired ? `<tr><td style="padding:6px 0;color:#666;">Deposit to secure date</td><td style="padding:6px 0;text-align:right;font-weight:600;">$${depositRequired?.toLocaleString()}</td></tr>` : ''}
+        </table>
+        <div style="clear:both;"></div>
+    </div>
+
+    <!-- Payment Terms -->
+    <div style="padding:24px 40px;background:#f0f0f0;border-top:1px solid #e0e0e0;">
+        <h3 style="margin:0 0 8px;font-size:14px;color:#111;">Payment Terms</h3>
+        <p style="margin:0;font-size:13px;color:#555;line-height:1.6;">A deposit is required to secure your date. The remaining balance is due within 24 hours of event completion. Payment details will be provided upon acceptance.</p>
+        ${validUntil ? `<p style="margin:8px 0 0;font-size:13px;color:#7b2ff7;font-weight:500;">This quote is valid until ${validUntil}.</p>` : ''}
+    </div>
+
+    ${notes ? `
+    <div style="padding:24px 40px;">
+        <h3 style="margin:0 0 8px;font-size:14px;color:#111;">Notes</h3>
+        <p style="margin:0;font-size:13px;color:#555;line-height:1.6;">${notes}</p>
+    </div>
+    ` : ''}
+
+    <!-- Footer -->
+    <div style="padding:32px 40px;background:#0e0e0e;text-align:center;">
+        <p style="margin:0 0 4px;color:#f0f0f0;font-size:14px;font-weight:600;">Atlanta Creative Exchange</p>
+        <p style="margin:0;color:#a0a0a0;font-size:12px;">Atlanta, Georgia • info@atlantacreativeexchange.com</p>
+        <p style="margin:8px 0 0;color:#a0a0a0;font-size:11px;">atlantacreativeexchange.com</p>
+    </div>
+</div>
+</body>
+</html>`;
+
+    // Send email with the quote as HTML body
+    try {
+        await ses.send(new SendEmailCommand({
+            Source: FROM_EMAIL,
+            ReplyToAddresses: [REPLY_TO_EMAIL],
+            Destination: { ToAddresses: [clientEmail] },
+            Message: {
+                Subject: { Data: `Your Quote from Atlanta Creative Exchange — ${eventType || 'Project'}` },
+                Body: { Html: { Data: quoteHtml } }
+            }
+        }));
+
+        // Also notify owner
+        await ses.send(new SendEmailCommand({
+            Source: FROM_EMAIL,
+            Destination: { ToAddresses: [OWNER_EMAIL] },
+            Message: {
+                Subject: { Data: `[ACE] Quote sent to ${clientName} — $${total?.toLocaleString()}` },
+                Body: { Html: { Data: `<p>Quote sent to <strong>${clientName}</strong> (${clientEmail}) for <strong>$${total?.toLocaleString()}</strong>.</p><p>Event: ${eventType} at ${venueName}</p>` } }
+            }
+        }));
+
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ success: true, message: `Quote emailed to ${clientEmail}` }),
+        };
+    } catch (err) {
+        console.error('Send quote error:', err);
+        return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || 'Failed to send quote' }) };
     }
 }
 
