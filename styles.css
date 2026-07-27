@@ -3005,8 +3005,13 @@ section {
 .site-credit {
     text-align: center;
     font-size: 0.6rem;
-    color: rgba(120, 120, 120, 0.35);
     padding: 12px 0;
-    background: #0a0a0a;
     letter-spacing: 0.02em;
+    background-color: #0a0a0a;
+}
+.site-credit span {
+    background-image: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
