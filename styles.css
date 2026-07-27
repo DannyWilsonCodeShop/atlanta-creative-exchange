@@ -3001,9 +3001,12 @@ section {
     font-weight: 600 !important;
 }
 
-/* --- Footer credit --- */
-.footer-credit {
-    font-size: 0.65rem;
-    color: rgba(160, 160, 160, 0.3);
-    margin-top: 8px;
+/* --- Site credit (outside footer) --- */
+.site-credit {
+    text-align: center;
+    font-size: 0.6rem;
+    color: rgba(120, 120, 120, 0.35);
+    padding: 12px 0;
+    background: #0a0a0a;
+    letter-spacing: 0.02em;
 }
