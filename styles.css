@@ -3000,3 +3000,10 @@ section {
     background-clip: text;
     font-weight: 600 !important;
 }
+
+/* --- Footer credit --- */
+.footer-credit {
+    font-size: 0.65rem;
+    color: rgba(160, 160, 160, 0.3);
+    margin-top: 8px;
+}
