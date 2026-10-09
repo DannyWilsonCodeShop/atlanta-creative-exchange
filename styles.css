@@ -1842,77 +1842,7 @@ section {
     line-height: 1.5;
 }
 
-/* Radio cards (room size) */
-.radio-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-}
-
-.radio-card {
-    cursor: pointer;
-}
-
-.radio-card input {
-    display: none;
-}
-
-.radio-card-content {
-    padding: 16px 14px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-sm);
-    text-align: center;
-    transition: all var(--transition);
-}
-
-.radio-card-content strong {
-    display: block;
-    font-size: 1rem;
-    margin-bottom: 4px;
-}
-
-.radio-card-content span {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-}
-
-.radio-detail {
-    font-size: 0.75rem !important;
-    margin-top: 4px;
-    opacity: 0.7;
-}
-
-.radio-card input:checked + .radio-card-content {
-    border-color: var(--color-purple);
-    background: rgba(123, 47, 247, 0.1);
-    box-shadow: 0 0 0 2px rgba(123, 47, 247, 0.3);
-}
-
 /* --- Quote Modal Additional Styles --- */
-.payment-terms {
-    margin: 24px 0;
-    padding: 16px 20px;
-    background: rgba(123, 47, 247, 0.08);
-    border: 1px solid rgba(123, 47, 247, 0.2);
-    border-radius: var(--radius-sm);
-}
-
-.payment-terms h4 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 8px;
-    color: var(--color-text);
-}
-
-.payment-terms p {
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-    line-height: 1.6;
-}
-
 .step-nav {
     display: flex;
     justify-content: space-between;
@@ -2090,13 +2020,8 @@ section {
     padding: 10px 20px;
 }
 
-/* Radio cards responsive */
+/* Quote modal responsive */
 @media (max-width: 768px) {
-    .radio-cards {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
     .quote-modal-inner {
         padding: 28px 20px;
     }
@@ -2495,69 +2420,6 @@ section {
     scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
-/* --- Service Type Selector (modal first step) --- */
-.service-type-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.service-type-card {
-    cursor: pointer;
-}
-
-.service-type-card input {
-    display: none;
-}
-
-.service-type-content {
-    padding: 28px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius);
-    text-align: center;
-    transition: all var(--transition);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.service-type-content svg {
-    color: var(--color-text-muted);
-    transition: color var(--transition);
-}
-
-.service-type-content strong {
-    display: block;
-    font-size: 1rem;
-}
-
-.service-type-content span {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-}
-
-.service-type-card input:checked + .service-type-content {
-    border-color: var(--color-purple);
-    background: rgba(123, 47, 247, 0.08);
-    box-shadow: 0 0 0 2px rgba(123, 47, 247, 0.3);
-}
-
-.service-type-card input:checked + .service-type-content svg {
-    color: var(--color-cyan);
-}
-
-.service-type-content:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-@media (max-width: 480px) {
-    .service-type-cards {
-        grid-template-columns: 1fr;
-    }
-}
-
 /* --- Mobile hero & general fixes --- */
 @media (max-width: 580px) {
     .hero-bg {
@@ -2633,26 +2495,6 @@ section {
 
     .quote-step h3 {
         font-size: 1.05rem;
-    }
-
-    .service-type-content {
-        padding: 20px 16px;
-    }
-
-    .service-type-content strong {
-        font-size: 0.9rem;
-    }
-
-    .radio-card-content {
-        padding: 14px 10px;
-    }
-
-    .radio-card-content strong {
-        font-size: 0.9rem;
-    }
-
-    .radio-detail {
-        font-size: 0.7rem !important;
     }
 
     .step-nav,
@@ -2839,156 +2681,12 @@ section {
     }
 }
 
-/* --- Multi-date event blocks --- */
-.event-dates-section {
-    margin-bottom: 20px;
-}
-
-.event-dates-label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--color-text-muted);
-    margin-bottom: 12px;
-}
-
-.event-date-block {
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius-sm);
-    margin-bottom: 12px;
-}
-
-.event-date-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.event-date-num {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--color-cyan);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.btn-remove-date {
-    background: none;
-    border: none;
-    color: var(--color-magenta);
-    font-size: 0.8rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background var(--transition);
-}
-
-.btn-remove-date:hover {
-    background: rgba(233, 30, 140, 0.1);
-}
-
-.event-date-block .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-}
-
-.btn-add-date {
-    background: none;
-    border: 1px dashed rgba(255, 255, 255, 0.15);
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-    font-family: var(--font-main);
-    padding: 12px;
-    width: 100%;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all var(--transition);
-}
-
-.btn-add-date:hover {
-    border-color: var(--color-cyan);
-    color: var(--color-cyan);
-}
-
-.same-services-group {
-    padding: 12px 16px;
-    background: rgba(123, 47, 247, 0.05);
-    border: 1px solid rgba(123, 47, 247, 0.15);
-    border-radius: var(--radius-sm);
-}
-
-@media (max-width: 580px) {
-    .event-date-block .form-row {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* --- Per-Day Service Cards (step 1b) --- */
+/* --- Step description --- */
 .step-description {
     font-size: 0.9rem;
     color: var(--color-text-muted);
     margin-bottom: 20px;
     line-height: 1.5;
-}
-
-.per-day-card {
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius-sm);
-    margin-bottom: 16px;
-}
-
-.per-day-header {
-    font-size: 0.9rem;
-    margin-bottom: 14px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    color: var(--color-cyan);
-}
-
-.per-day-card .form-group {
-    margin-bottom: 12px;
-}
-
-.per-day-card .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.per-day-card label {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-}
-
-.per-day-card input,
-.per-day-card select {
-    width: 100%;
-    background: var(--color-bg);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    font-size: 0.9rem;
-    color: var(--color-text);
-    font-family: var(--font-main);
-}
-
-.per-day-card .checkbox-group {
-    grid-template-columns: 1fr 1fr;
-}
-
-@media (max-width: 580px) {
-    .per-day-card .form-row {
-        grid-template-columns: 1fr;
-    }
-    .per-day-card .checkbox-group {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* --- Form note box --- */
