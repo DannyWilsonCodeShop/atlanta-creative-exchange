@@ -33,6 +33,15 @@
     --glass-strong: rgba(14, 18, 34, 0.68);
     --glass-border: rgba(255, 255, 255, 0.18);
 
+    /* Surface tokens. The glass-theme redesign dropped these but ~40 call sites
+       still reference them, which left cards/sections rendering transparent and
+       washing text out over the gradient. Restored as glass-consistent values:
+       page/section bases stay subtle so the watercolor backdrop shows through;
+       cards use the readable frosted "strong" glass. */
+    --color-bg: transparent;
+    --color-bg-alt: rgba(10, 14, 30, 0.28);
+    --color-bg-card: var(--glass-strong);
+
     --color-text: #f4f6fb;
     --color-text-muted: #cdd5e6;
     --color-cyan: var(--brand-sky);
@@ -1784,8 +1793,8 @@ section {
 .quote-form select,
 .quote-form textarea {
     width: 100%;
-    background: var(--color-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1b2030;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--radius-sm);
     padding: 12px 14px;
     font-size: 0.95rem;
@@ -2575,8 +2584,8 @@ section {
 
 .email-list-inner input {
     width: 100%;
-    background: var(--color-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1b2030;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--radius-sm);
     padding: 12px 14px;
     font-size: 1rem;
