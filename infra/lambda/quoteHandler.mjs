@@ -116,6 +116,15 @@ export const handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body);
+        const path = event.rawPath || event.requestContext?.http?.path || '';
+
+        // Route: /notify (ace-platform lifecycle notifications: project notes,
+        // meetings, demos, contracts). Routed BEFORE spam protection because
+        // notification payloads carry no firstName/lastName (which the gibberish
+        // check would otherwise reject).
+        if (path.includes('/notify')) {
+            return await handleNotify(body, headers);
+        }
 
         // --- Spam protection ---
         // Reject if name contains no spaces (real names have first + last)
@@ -133,7 +142,6 @@ export const handler = async (event) => {
         }
 
         // Route: /subscribe (email list signup)
-        const path = event.rawPath || event.requestContext?.http?.path || '';
         if (path.includes('/subscribe')) {
             return await handleSubscribe(body, headers);
         }
@@ -812,4 +820,97 @@ async function handleSubscribe(data, headers) {
     }
 
     return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+}
+
+// === LIFECYCLE NOTIFICATIONS (ace-platform /notify) ===
+// Handles project-note / meeting / demo / contract alerts emitted by the
+// ace-platform PM app's sendNotification.ts client. Owner-facing types go to
+// OWNER_EMAIL; customer-facing types (meeting_response, contract_sent) use the
+// caller-supplied data.email, falling back to OWNER_EMAIL if absent.
+async function handleNotify(body, headers) {
+    const { type, data = {}, channels = ['email'] } = body || {};
+
+    let emailSubject = '';
+    let emailBody = '';
+    let toEmail = data.email || OWNER_EMAIL;
+
+    switch (type) {
+        case 'project_note': {
+            const noteKind = (data.kind || '').toUpperCase() === 'VOICE' ? 'VOICE' : 'TEXT';
+            emailSubject = `[ACE] New ${noteKind} note on ${data.projectName || 'a project'}`;
+            emailBody = `A new ${noteKind} note was added to project "${data.projectName || 'a project'}". Reference: ${data.noteRef || 'n/a'}. Open the admin portal to review.`;
+            toEmail = OWNER_EMAIL; // owner-facing
+            break;
+        }
+        case 'meeting_requested': {
+            emailSubject = `[ACE] Meeting requested on ${data.projectName || 'a project'}`;
+            emailBody = `A meeting was requested on project "${data.projectName || 'a project'}".<br/>`
+                + `Proposed time: ${data.proposedAt || 'TBD'}<br/>`
+                + `Mode: ${data.mode || 'TBD'}<br/>`
+                + `Purpose: ${data.purpose || 'n/a'}<br/>`
+                + `Agenda: ${data.agenda || 'n/a'}<br/>`
+                + `Open the admin portal to respond.`;
+            toEmail = OWNER_EMAIL; // owner-facing
+            break;
+        }
+        case 'meeting_response': {
+            emailSubject = `[ACE] Meeting ${data.status || 'update'}: ${data.projectName || 'your project'}`;
+            emailBody = `Your meeting on project "${data.projectName || 'your project'}" was ${data.status || 'updated'}.<br/>`
+                + `${data.confirmedAt ? `Confirmed time: ${data.confirmedAt}<br/>` : ''}`
+                + `${data.responseNote ? `Note: ${data.responseNote}<br/>` : ''}`;
+            // customer-facing: keep data.email (falls back to OWNER_EMAIL above)
+            break;
+        }
+        case 'demo_feedback': {
+            emailSubject = `[ACE] Demo feedback on ${data.projectName || 'a project'}`;
+            emailBody = `New feedback on demo "${data.demoTitle || 'demo'}" for project "${data.projectName || 'a project'}".<br/>`
+                + `Selected option: ${data.selectedOption || 'n/a'}<br/>`
+                + `Feedback: ${data.clientFeedback || 'n/a'}<br/>`
+                + `Open the admin portal to review.`;
+            toEmail = OWNER_EMAIL; // owner-facing
+            break;
+        }
+        case 'contract_sent': {
+            const amountLabel = data.amount != null ? `$${data.amount}` : 'the agreed amount';
+            emailSubject = `[ACE] Your contract for ${data.projectName || 'your project'}`;
+            emailBody = `A contract for project "${data.projectName || 'your project'}" is ready for your review and signature.<br/>`
+                + `Amount: ${amountLabel}<br/>`
+                + `Sign in to your ACE portal to review and sign.`;
+            // customer-facing: keep data.email
+            break;
+        }
+        case 'contract_signed': {
+            emailSubject = `[ACE] Contract signed: ${data.projectName || 'a project'}`;
+            emailBody = `The contract on project "${data.projectName || 'a project'}" was signed by ${data.signerName || 'the customer'}.<br/>`
+                + `Open the admin portal to review.`;
+            toEmail = OWNER_EMAIL; // owner-facing
+            break;
+        }
+        default: {
+            emailSubject = `[ACE] Notification: ${type || 'unknown'}`;
+            emailBody = `A notification was received.<br/>${JSON.stringify(data)}`;
+            toEmail = OWNER_EMAIL;
+        }
+    }
+
+    const results = {};
+    if (channels.includes('email')) {
+        try {
+            await ses.send(new SendEmailCommand({
+                Source: FROM_EMAIL,
+                ReplyToAddresses: [REPLY_TO_EMAIL],
+                Destination: { ToAddresses: [toEmail] },
+                Message: {
+                    Subject: { Data: emailSubject },
+                    Body: { Html: { Data: `<p>${emailBody}</p>` } }
+                }
+            }));
+            results.email = true;
+        } catch (err) {
+            console.error('Notify email failed:', err);
+            results.email = false;
+        }
+    }
+
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true, type, results }) };
 }
