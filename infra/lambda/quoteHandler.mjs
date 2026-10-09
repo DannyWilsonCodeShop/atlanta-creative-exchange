@@ -13,7 +13,72 @@ import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { PinpointSMSVoiceV2Client, SendTextMessageCommand } from '@aws-sdk/client-pinpoint-sms-voice-v2';
 import { CognitoIdentityProviderClient, AdminCreateUserCommand, AdminAddUserToGroupCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
+import { ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+
+/**
+ * STRIPE INTEGRATION (TEST MODE) — dependency-free design.
+ *
+ * This Lambda ships with NO node_modules (the stripe SDK is NOT bundled). The
+ * Stripe routes below call the Stripe REST API directly with the global `fetch`
+ * (Node 20 runtime) and verify webhook signatures with node:crypto HMAC-SHA256.
+ * This keeps the deploy zip tiny and matches the existing zero-dependency build.
+ *
+ * The secret key is read ONLY from process.env.STRIPE_SECRET_KEY — never
+ * hardcoded, never logged. Webhook signature verification uses
+ * process.env.STRIPE_WEBHOOK_SECRET (a user TODO to set after creating the
+ * webhook endpoint in the Stripe dashboard); when absent we parse WITHOUT
+ * verification as a TEST-MODE fallback (verification strongly PREFERRED).
+ *
+ * Webhook DB writes follow the existing AMPLIFY_QUOTE_TABLE direct-DynamoDB
+ * approach via the DynamoDBDocumentClient already constructed in this file.
+ * TD-4 FIX: invoice-paid transitions UPSERT by stripeInvoiceId (update if the
+ * row exists, create only if not) to avoid duplicate Invoice rows.
+ */
+const STRIPE_API = 'https://api.stripe.com/v1';
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+const ACE_INVOICE_TABLE = process.env.ACE_INVOICE_TABLE || 'Invoice-7zcql4kvqrbfrax5eqpq3t3hmu-NONE';
+const ACE_MAINTENANCE_TABLE = process.env.ACE_MAINTENANCE_TABLE; // undefined when unset → plan writes skipped
+
+/**
+ * Encode a (possibly nested/bracketed) flat object as
+ * application/x-www-form-urlencoded for the Stripe REST API. Keys are expected
+ * to already be in Stripe's bracket notation (e.g. "line_items[0][price_data][currency]").
+ */
+function stripeForm(obj) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(obj)) {
+        if (v === undefined || v === null) continue;
+        params.append(k, String(v));
+    }
+    return params.toString();
+}
+
+/**
+ * POST to the Stripe REST API. Returns parsed JSON on 2xx, throws on non-2xx
+ * logging only Stripe's error message (never the key).
+ */
+async function stripeRequest(path, params) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+        throw new Error('STRIPE_SECRET_KEY is not set on the Lambda');
+    }
+    const res = await fetch(`${STRIPE_API}${path}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: stripeForm(params),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const msg = json?.error?.message || `Stripe request failed (${res.status})`;
+        console.error('Stripe API error:', msg);
+        throw new Error(msg);
+    }
+    return json;
+}
 
 const REGION = process.env.AWS_REGION || 'us-east-1';
 const TABLE_NAME = process.env.TABLE_NAME || 'ACE-Quotes';
@@ -115,8 +180,26 @@ export const handler = async (event) => {
     }
 
     try {
-        const body = JSON.parse(event.body);
         const path = event.rawPath || event.requestContext?.http?.path || '';
+
+        // Route: /stripe/webhook — routed BEFORE JSON.parse so the handler can
+        // read the EXACT raw request body (required for HMAC signature
+        // verification) and the Stripe-Signature header. Carries no
+        // firstName/lastName, so it must run before the spam-name check.
+        if (path.includes('/stripe/webhook')) {
+            return await handleStripeWebhook(event, headers);
+        }
+
+        const body = JSON.parse(event.body);
+
+        // Route: /stripe/* (create endpoints). Routed BEFORE the spam-name check
+        // like /notify because Stripe payloads carry no firstName/lastName.
+        if (path.includes('/stripe/create-checkout')) {
+            return await handleStripeCheckout(body, headers);
+        }
+        if (path.includes('/stripe/create-subscription')) {
+            return await handleStripeSubscription(body, headers);
+        }
 
         // Route: /notify (ace-platform lifecycle notifications: project notes,
         // meetings, demos, contracts). Routed BEFORE spam protection because
@@ -913,4 +996,311 @@ async function handleNotify(body, headers) {
     }
 
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, type, results }) };
+}
+
+// === STRIPE: CREATE CHECKOUT (one-off / deposit / balance invoice) ===
+// Inputs: { amount, currency='usd', invoiceId, projectId, clientEmail,
+//           description, successUrl, cancelUrl }.
+// `amount` is treated as MAJOR units (dollars) and converted to Stripe minor
+// units (cents) server-side. Returns { url } (the hosted Checkout URL).
+async function handleStripeCheckout(data, headers) {
+    const {
+        amount, currency = 'usd', invoiceId, projectId, clientEmail,
+        description, successUrl, cancelUrl,
+    } = data || {};
+
+    if (amount == null || !successUrl || !cancelUrl) {
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'amount, successUrl and cancelUrl are required' }),
+        };
+    }
+
+    const productName = description || 'Atlanta Creative Exchange payment';
+    const params = {
+        mode: 'payment',
+        'line_items[0][price_data][currency]': currency,
+        'line_items[0][price_data][product_data][name]': productName,
+        'line_items[0][price_data][unit_amount]': Math.round(Number(amount) * 100),
+        'line_items[0][quantity]': 1,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        // Statement-descriptor-friendly label for the one-off payment intent.
+        'payment_intent_data[statement_descriptor]': 'ATLANTA CREATIVE EXCH',
+        'payment_intent_data[description]': productName,
+    };
+    if (clientEmail) params.customer_email = clientEmail;
+    // Correlation metadata so the webhook can match the Stripe event to our row.
+    if (invoiceId) params['metadata[invoiceId]'] = invoiceId;
+    if (projectId) params['metadata[projectId]'] = projectId;
+
+    try {
+        const session = await stripeRequest('/checkout/sessions', params);
+        return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
+    } catch (err) {
+        return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || 'Stripe checkout failed' }) };
+    }
+}
+
+// === STRIPE: CREATE SUBSCRIPTION (maintenance plan) ===
+// Inputs: { amount, cadence ('monthly'|'quarterly'|'annual'), planId,
+//           clientEmail, successUrl, cancelUrl, currency='usd' }.
+// Uses a Checkout Session (mode: 'subscription') so the payment method is
+// collected via Stripe-hosted UI (no PCI surface in our code). Returns { url }.
+async function handleStripeSubscription(data, headers) {
+    const {
+        amount, cadence, planId, clientEmail, successUrl, cancelUrl, currency = 'usd',
+    } = data || {};
+
+    if (amount == null || !cadence || !successUrl || !cancelUrl) {
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'amount, cadence, successUrl and cancelUrl are required' }),
+        };
+    }
+
+    // Map cadence → Stripe recurring interval.
+    const recurring = { interval: 'month', interval_count: 1 };
+    if (cadence === 'monthly') { recurring.interval = 'month'; recurring.interval_count = 1; }
+    else if (cadence === 'quarterly') { recurring.interval = 'month'; recurring.interval_count = 3; }
+    else if (cadence === 'annual') { recurring.interval = 'year'; recurring.interval_count = 1; }
+    else {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: `Unsupported cadence: ${cadence}` }) };
+    }
+
+    const params = {
+        mode: 'subscription',
+        'line_items[0][price_data][currency]': currency,
+        'line_items[0][price_data][product_data][name]': `ACE Maintenance (${cadence})`,
+        'line_items[0][price_data][unit_amount]': Math.round(Number(amount) * 100),
+        'line_items[0][price_data][recurring][interval]': recurring.interval,
+        'line_items[0][price_data][recurring][interval_count]': recurring.interval_count,
+        'line_items[0][quantity]': 1,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+    };
+    if (clientEmail) params.customer_email = clientEmail;
+    if (planId) params['metadata[planId]'] = planId;
+
+    try {
+        const session = await stripeRequest('/checkout/sessions', params);
+        return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
+    } catch (err) {
+        return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || 'Stripe subscription failed' }) };
+    }
+}
+
+// === STRIPE: TD-4 UPSERT by stripeInvoiceId ===
+// The Invoice table has NO index on stripeInvoiceId (only `id` HASH and
+// gsi-Client.invoices), so we Scan with a FilterExpression to find an existing
+// row, UpdateItem by its `id` when found, else PutItem a new row. This replaces
+// the prior always-create behavior that risked duplicate Invoice rows.
+async function upsertInvoiceByStripeId(stripeInvoiceId, fields) {
+    const now = new Date().toISOString();
+
+    // Find an existing invoice carrying this stripeInvoiceId (paginate defensively).
+    let existing;
+    let lastKey;
+    do {
+        const page = await docClient.send(new ScanCommand({
+            TableName: ACE_INVOICE_TABLE,
+            FilterExpression: 'stripeInvoiceId = :sid',
+            ExpressionAttributeValues: { ':sid': stripeInvoiceId },
+            ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
+        }));
+        existing = (page.Items || [])[0];
+        lastKey = page.LastEvaluatedKey;
+    } while (!existing && lastKey);
+
+    if (existing) {
+        // UPDATE the found row by its primary key.
+        const setFields = { ...fields, updatedAt: now };
+        const names = {};
+        const values = {};
+        const sets = [];
+        let i = 0;
+        for (const [k, v] of Object.entries(setFields)) {
+            if (v === undefined) continue;
+            const nk = `#f${i}`;
+            const vk = `:v${i}`;
+            names[nk] = k;
+            values[vk] = v;
+            sets.push(`${nk} = ${vk}`);
+            i += 1;
+        }
+        await docClient.send(new UpdateCommand({
+            TableName: ACE_INVOICE_TABLE,
+            Key: { id: existing.id },
+            UpdateExpression: `SET ${sets.join(', ')}`,
+            ExpressionAttributeNames: names,
+            ExpressionAttributeValues: values,
+        }));
+        return { id: existing.id, updated: true };
+    }
+
+    // CREATE only when no existing row carries this stripeInvoiceId.
+    const id = randomUUID();
+    const item = {
+        id,
+        __typename: 'Invoice',
+        stripeInvoiceId,
+        kind: 'maintenance',
+        recurring: true,
+        createdAt: now,
+        updatedAt: now,
+        ...fields,
+    };
+    for (const k of Object.keys(item)) {
+        if (item[k] === undefined) delete item[k];
+    }
+    await docClient.send(new PutCommand({ TableName: ACE_INVOICE_TABLE, Item: item }));
+    return { id, created: true };
+}
+
+// Update a MaintenancePlan row by id — only when ACE_MAINTENANCE_TABLE is set
+// (that table is NOT yet deployed; see user TODO). Logs and skips otherwise.
+async function updateMaintenancePlanFields(planId, fields) {
+    if (!ACE_MAINTENANCE_TABLE) {
+        console.warn('ACE_MAINTENANCE_TABLE not set — skipping MaintenancePlan write for', planId);
+        return;
+    }
+    if (!planId) {
+        console.warn('No planId available — skipping MaintenancePlan write');
+        return;
+    }
+    const now = new Date().toISOString();
+    const setFields = { ...fields, updatedAt: now };
+    const names = {};
+    const values = {};
+    const sets = [];
+    let i = 0;
+    for (const [k, v] of Object.entries(setFields)) {
+        if (v === undefined) continue;
+        const nk = `#f${i}`;
+        const vk = `:v${i}`;
+        names[nk] = k;
+        values[vk] = v;
+        sets.push(`${nk} = ${vk}`);
+        i += 1;
+    }
+    await docClient.send(new UpdateCommand({
+        TableName: ACE_MAINTENANCE_TABLE,
+        Key: { id: planId },
+        UpdateExpression: `SET ${sets.join(', ')}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+    }));
+}
+
+// === STRIPE: WEBHOOK ===
+// Receives Stripe events. Verifies the Stripe-Signature header against
+// STRIPE_WEBHOOK_SECRET (HMAC-SHA256) when set; otherwise parses WITHOUT
+// verification as a TEST-MODE fallback (see user TODO). Always returns 200 on
+// handled/ignored types so Stripe does not retry; DB writes are wrapped so an
+// IAM gap surfaces in logs without 500-looping Stripe.
+async function handleStripeWebhook(event, headers) {
+    const rawBody = event.body || '';
+    const sig = event.headers?.['stripe-signature'] || event.headers?.['Stripe-Signature'];
+
+    if (STRIPE_WEBHOOK_SECRET) {
+        if (!verifyStripeSignature(rawBody, sig, STRIPE_WEBHOOK_SECRET)) {
+            console.error('Stripe webhook signature verification failed');
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid signature' }) };
+        }
+    } else {
+        console.warn('STRIPE_WEBHOOK_SECRET not set — parsing webhook WITHOUT verification (test-mode fallback)');
+    }
+
+    let stripeEvent;
+    try {
+        stripeEvent = JSON.parse(rawBody);
+    } catch {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+    }
+
+    try {
+        const obj = stripeEvent.data?.object || {};
+        switch (stripeEvent.type) {
+            case 'checkout.session.completed': {
+                const invoiceId = obj.metadata?.invoiceId;
+                const stripeInvoiceId = obj.invoice || invoiceId;
+                if (stripeInvoiceId) {
+                    await upsertInvoiceByStripeId(stripeInvoiceId, {
+                        status: 'paid',
+                        paidAt: new Date().toISOString(),
+                        ...(obj.amount_total != null ? { total: obj.amount_total / 100 } : {}),
+                        ...(invoiceId ? { sourceInvoiceId: invoiceId } : {}),
+                        ...(obj.metadata?.projectId ? { projectId: obj.metadata.projectId } : {}),
+                    });
+                }
+                break;
+            }
+            case 'invoice.paid': {
+                // TD-4 upsert by Stripe invoice id.
+                await upsertInvoiceByStripeId(obj.id, {
+                    status: 'paid',
+                    paidAt: new Date().toISOString(),
+                    ...(obj.amount_paid != null ? { total: obj.amount_paid / 100 } : {}),
+                });
+                break;
+            }
+            case 'invoice.payment_failed': {
+                const planId = obj.metadata?.planId || obj.subscription_details?.metadata?.planId;
+                await updateMaintenancePlanFields(planId, { status: 'past_due' });
+                break;
+            }
+            case 'customer.subscription.updated': {
+                const planId = obj.metadata?.planId;
+                const nextBillingDate = obj.current_period_end
+                    ? new Date(obj.current_period_end * 1000).toISOString()
+                    : undefined;
+                await updateMaintenancePlanFields(planId, {
+                    status: obj.status || 'active',
+                    nextBillingDate,
+                });
+                break;
+            }
+            case 'customer.subscription.deleted': {
+                const planId = obj.metadata?.planId;
+                await updateMaintenancePlanFields(planId, {
+                    status: 'cancelled',
+                    cancelledAt: new Date().toISOString(),
+                });
+                break;
+            }
+            default:
+                console.log('Unhandled Stripe event type:', stripeEvent.type);
+        }
+    } catch (err) {
+        // Log (e.g. AccessDenied until the IAM TODO is applied) but still 200 so
+        // Stripe does not retry-loop.
+        console.error('Stripe webhook DB write failed:', err?.message || err);
+    }
+
+    return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
+}
+
+// Verify a Stripe-Signature header (t=...,v1=...) via HMAC-SHA256 over
+// `${timestamp}.${rawBody}` using the webhook signing secret.
+function verifyStripeSignature(rawBody, sigHeader, secret) {
+    if (!sigHeader) return false;
+    const parts = Object.fromEntries(
+        sigHeader.split(',').map((kv) => {
+            const idx = kv.indexOf('=');
+            return [kv.slice(0, idx).trim(), kv.slice(idx + 1).trim()];
+        }),
+    );
+    const t = parts.t;
+    const v1 = parts.v1;
+    if (!t || !v1) return false;
+    const expected = createHmac('sha256', secret).update(`${t}.${rawBody}`).digest('hex');
+    try {
+        const a = Buffer.from(expected, 'hex');
+        const b = Buffer.from(v1, 'hex');
+        return a.length === b.length && timingSafeEqual(a, b);
+    } catch {
+        return false;
+    }
 }
