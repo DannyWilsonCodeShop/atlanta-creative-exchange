@@ -4,8 +4,8 @@
     <button class="quote-close" id="quoteClose" aria-label="Close quote form">&times;</button>
     <div class="quote-modal-inner">
         <div class="quote-header">
-            <h2 id="quoteTitle">Request a Quote</h2>
-            <p class="quote-subtitle">Tell us about your event and a member of our sales team will reach out with a quote or any questions within 24 hours.</p>
+            <h2 id="quoteTitle">Start a Project</h2>
+            <p class="quote-subtitle">Tell us what you want to build and we'll reach out with a plan and a quote — or any questions — within 24 hours.</p>
         </div>
 
         <form class="quote-form" id="quoteForm" novalidate>
@@ -18,19 +18,19 @@
                 <h3>What can we help you with?</h3>
                 <div class="service-type-cards">
                     <label class="service-type-card">
-                        <input type="radio" name="serviceType" value="event" required>
+                        <input type="radio" name="serviceType" value="digital" required>
+                        <div class="service-type-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                            <strong>App & Web Development</strong>
+                            <span>Web &amp; mobile apps, MVPs, cloud, websites, branding</span>
+                        </div>
+                    </label>
+                    <label class="service-type-card">
+                        <input type="radio" name="serviceType" value="event">
                         <div class="service-type-content">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17V5l12-2v12"/></svg>
                             <strong>Event & Sound Services</strong>
                             <span>DJ, PA systems, live bands, event hosting</span>
-                        </div>
-                    </label>
-                    <label class="service-type-card">
-                        <input type="radio" name="serviceType" value="digital">
-                        <div class="service-type-content">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                            <strong>Online Platforms & Digital</strong>
-                            <span>Websites, apps, branding, content production</span>
                         </div>
                     </label>
                 </div>
@@ -449,15 +449,30 @@
                 <div class="form-group">
                     <label>What do you need? *</label>
                     <div class="checkbox-group">
-                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Website"> Website</label>
                         <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Mobile App"> Mobile App</label>
                         <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Web App"> Web Application</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="MVP / Prototype"> MVP / Prototype (startup)</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Website"> Website</label>
                         <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="E-Commerce"> E-Commerce Store</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Cloud / Backend (AWS)"> Cloud / Backend (AWS)</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="AI-Enhanced Feature"> AI-Enhanced Feature</label>
                         <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Branding"> Branding & Identity</label>
-                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Content Production"> Content Production (video/photo)</label>
-                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Content Editing"> Content Editing</label>
+                        <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Content Production / Editing"> Content Production / Editing</label>
                         <label class="checkbox-label"><input type="checkbox" name="digitalServices" value="Other"> Other / Not Sure</label>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-platform">Which platform(s)?</label>
+                    <select id="q-platform" name="platform">
+                        <option value="">Select</option>
+                        <option value="Web only">Web only</option>
+                        <option value="iOS only">iOS only</option>
+                        <option value="Android only">Android only</option>
+                        <option value="iOS + Android">iOS + Android</option>
+                        <option value="Web + Mobile">Web + Mobile</option>
+                        <option value="Not sure - need guidance">Not sure — need guidance</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -529,6 +544,9 @@
                         <label class="checkbox-label"><input type="checkbox" name="features" value="Blog"> Blog</label>
                         <label class="checkbox-label"><input type="checkbox" name="features" value="Analytics"> Analytics / tracking</label>
                         <label class="checkbox-label"><input type="checkbox" name="features" value="API integrations"> API / third-party integrations</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Admin dashboard"> Admin dashboard</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="Push/real-time notifications"> Push / real-time notifications</label>
+                        <label class="checkbox-label"><input type="checkbox" name="features" value="AI features"> AI features (chat, search, generation)</label>
                     </div>
                 </div>
 

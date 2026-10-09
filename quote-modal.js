@@ -609,6 +609,7 @@
             formData = {
                 serviceType: 'digital',
                 digitalServices: Array.from(form.querySelectorAll('[name="digitalServices"]:checked')).map(c => c.value),
+                platform: form.querySelector('[name="platform"]')?.value || '',
                 projectDescription: form.querySelector('[name="projectDescription"]').value,
                 hasExisting: form.querySelector('[name="hasExisting"]').value || '',
                 existingUrl: form.querySelector('[name="existingUrl"]').value || '',
