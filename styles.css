@@ -791,8 +791,8 @@ section {
 .form-group input,
 .form-group select,
 .form-group textarea {
-    background: var(--color-bg-card);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #1b2030;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--radius-sm);
     padding: 14px 16px;
     font-size: 1rem;
@@ -811,7 +811,7 @@ section {
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-    color: rgba(160, 160, 160, 0.5);
+    color: rgba(205, 213, 230, 0.55);
 }
 
 .form-group textarea {
@@ -1610,9 +1610,9 @@ section {
 .quote-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 9998;
     opacity: 0;
     pointer-events: none;
@@ -1632,8 +1632,11 @@ section {
     width: 90%;
     max-width: 700px;
     max-height: 90vh;
-    background: var(--color-bg-card);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Solid dark surface so the light form text stays readable over the
+       site's vibrant watercolor gradient (the old --color-bg-card var was
+       dropped in the glass-theme redesign and resolved to transparent). */
+    background: #10131f;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 16px;
     z-index: 9999;
     overflow-x: hidden;
