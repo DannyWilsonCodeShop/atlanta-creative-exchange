@@ -197,7 +197,7 @@
             const activeBtn = document.querySelector('.btn-loading');
             if (activeBtn) {
                 activeBtn.classList.remove('btn-loading');
-                activeBtn.textContent = 'Submit Project Request';
+                activeBtn.textContent = 'Request my free demo';
             }
         }
     });
@@ -210,7 +210,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        Get a Quote
+        Free Demo
     `;
     fab.addEventListener('click', () => {
         openModal();
@@ -224,8 +224,8 @@
     popup.innerHTML = `
         <button class="quote-popup-close" aria-label="Dismiss">&times;</button>
         <h4>Got an app idea?</h4>
-        <p>Get a personalized quote for your web or mobile app build. Our team responds within 24 hours.</p>
-        <button class="btn btn-primary" onclick="openQuoteModal()">Request a Quote</button>
+        <p>See it first with a free demo of your web or mobile app build — no obligation. Our team responds within 24 hours.</p>
+        <button class="btn btn-primary" onclick="openQuoteModal()">Request a free demo</button>
     `;
     document.body.appendChild(popup);
 
