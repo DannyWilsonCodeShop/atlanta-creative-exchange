@@ -39,6 +39,13 @@ const STRIPE_API = 'https://api.stripe.com/v1';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const ACE_INVOICE_TABLE = process.env.ACE_INVOICE_TABLE || 'Invoice-7zcql4kvqrbfrax5eqpq3t3hmu-NONE';
 const ACE_MAINTENANCE_TABLE = process.env.ACE_MAINTENANCE_TABLE; // undefined when unset → plan writes skipped
+// New payment-plan tables (design §B5). Not known until the backend deploy
+// creates them (same posture as ACE_MAINTENANCE_TABLE); undefined ⇒ every new
+// plan write logs a warning and is skipped (never throws). The read-from-env
+// code ships now; setting these vars + the DynamoDB IAM grants is the documented
+// post-deploy TODO (§B5) and is NOT performed in this build.
+const ACE_PAYMENTPLAN_TABLE = process.env.ACE_PAYMENTPLAN_TABLE;         // undefined ⇒ writes skipped
+const ACE_PAYMENTPLANITEM_TABLE = process.env.ACE_PAYMENTPLANITEM_TABLE; // undefined ⇒ writes skipped
 
 /**
  * Encode a (possibly nested/bracketed) flat object as
@@ -204,6 +211,21 @@ const BEDROCK_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const dynamoRaw = new DynamoDBClient({ region: REGION });
 const dynamo = dynamoRaw;
 const docClient = DynamoDBDocumentClient.from(dynamoRaw);
+
+// DynamoDB document client used by the webhook reconciliation helpers (B4/B5).
+// `getDocClient()` returns the real client at runtime; `__setDocClientForTests`
+// lets the node --test suites inject a recording mock (the aws-sdk stub throws
+// on send()). This indirection is inert in the Lambda — AWS invokes `handler`
+// and the real `docClient` is always used; the setter is never called at
+// runtime. Keeping it isolated to the new plan helpers leaves the existing
+// upsertInvoiceByStripeId / updateMaintenancePlanFields behavior untouched.
+let _planDocClient = docClient;
+function getDocClient() {
+    return _planDocClient;
+}
+function __setDocClientForTests(client) {
+    _planDocClient = client || docClient;
+}
 const ses = new SESClient({ region: REGION });
 const sms = new PinpointSMSVoiceV2Client({ region: REGION });
 const bedrock = new BedrockRuntimeClient({ region: REGION });
@@ -1175,6 +1197,7 @@ async function handleStripeCheckout(data, headers) {
 async function handleStripeSubscription(data, headers) {
     const {
         amount, cadence, planId, clientEmail, successUrl, cancelUrl, currency = 'usd',
+        trialEnd,
     } = data || {};
 
     if (amount == null || !cadence || !successUrl || !cancelUrl) {
@@ -1206,7 +1229,27 @@ async function handleStripeSubscription(data, headers) {
         cancel_url: cancelUrl,
     };
     if (clientEmail) params.customer_email = clientEmail;
-    if (planId) params['metadata[planId]'] = planId;
+    if (planId) {
+        params['metadata[planId]'] = planId;
+        // MEDIUM-A: Stripe does NOT copy Checkout Session metadata onto the
+        // created Subscription, so set the planId on the subscription itself.
+        // Then customer.subscription.* events carry it under subscription metadata.
+        params['subscription_data[metadata][planId]'] = planId;
+    }
+
+    // MEDIUM-B: optional trialEnd honors a future maintenance start (e.g.
+    // 2026-12-30) without charging earlier. PINNED predicate (verbatim):
+    if (trialEnd !== undefined) {
+        const t = Math.floor(Date.parse(trialEnd) / 1000);
+        if (!Number.isFinite(t)) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'invalid trialEnd' }) };
+        } else if (t <= nowSec() + 48 * 3600) {
+            // Too near/past — Stripe rejects it; omit trial_end and start now.
+            console.warn('trialEnd not strictly in the future (>48h) — starting maintenance now');
+        } else {
+            params['subscription_data[trial_end]'] = t;
+        }
+    }
 
     try {
         const session = await stripeRequest('/checkout/sessions', params);
@@ -1495,6 +1538,301 @@ async function updateMaintenancePlanFields(planId, fields) {
     }));
 }
 
+// =========================================================================
+// === PAYMENT-PLAN RECONCILIATION HELPERS (design §B5 / §B4) ==============
+// =========================================================================
+// Env-gated DynamoDB helpers for the two new tables (PaymentPlan /
+// PaymentPlanItem). Each begins with the SAME unset-env guard as
+// updateMaintenancePlanFields: when the table var is unset it logs a warning
+// and SKIPS the write (never throws), so webhook reconciliation is inert until
+// the §B5 post-deploy env+IAM TODO sets ACE_PAYMENTPLAN_TABLE /
+// ACE_PAYMENTPLANITEM_TABLE. The new tables have NO GSI on
+// stripeInvoiceId/stripeSubscriptionId/stripeScheduleId, so reads clone the
+// Scan-filter-then-Update/Put pattern of upsertInvoiceByStripeId.
+// (getScheduleSubscriptionId / backReconcilePaidInstallments' stripeGet hit
+// Stripe, not DynamoDB — not env-gated — but their DB WRITES go through these
+// helpers, which are.)
+
+// Seconds since epoch — grace-window arithmetic (design §B4).
+function nowSec() {
+    return Math.floor(Date.now() / 1000);
+}
+
+// Append a timestamped line to a plan's free-text notes (schedule terminal
+// events that are not a clean completion — design §B4 subscription_schedule.*).
+function appendNote(existing, line) {
+    const stamp = new Date().toISOString();
+    const entry = `[${stamp}] ${line}`;
+    return existing ? `${existing}\n${entry}` : entry;
+}
+
+// Build a DynamoDB SET UpdateExpression from a flat field object, skipping
+// undefined values. Returns { UpdateExpression, ExpressionAttributeNames,
+// ExpressionAttributeValues } or null when nothing to set.
+function buildSetExpression(fields) {
+    const names = {};
+    const values = {};
+    const sets = [];
+    let i = 0;
+    for (const [k, v] of Object.entries(fields)) {
+        if (v === undefined) continue;
+        const nk = `#f${i}`;
+        const vk = `:v${i}`;
+        names[nk] = k;
+        values[vk] = v;
+        sets.push(`${nk} = ${vk}`);
+        i += 1;
+    }
+    if (!sets.length) return null;
+    return {
+        UpdateExpression: `SET ${sets.join(', ')}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+    };
+}
+
+// Scan a table with a single-attribute equality filter, paginating defensively,
+// returning the first matching item or undefined. Mirrors the find step of
+// upsertInvoiceByStripeId (no GSI on the stripe* fields).
+async function scanFirstByField(table, field, value) {
+    let lastKey;
+    do {
+        const page = await getDocClient().send(new ScanCommand({
+            TableName: table,
+            FilterExpression: '#k = :v',
+            ExpressionAttributeNames: { '#k': field },
+            ExpressionAttributeValues: { ':v': value },
+            ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
+        }));
+        const hit = (page.Items || [])[0];
+        if (hit) return hit;
+        lastKey = page.LastEvaluatedKey;
+    } while (lastKey);
+    return undefined;
+}
+
+// Upsert a PaymentPlanItem by stripeInvoiceId (no GSI → Scan-filter-then-
+// Update/Put, cloned from upsertInvoiceByStripeId). Returns
+// { id, created|updated, wasPaid } — wasPaid reports whether the row was
+// ALREADY status==='paid' BEFORE this write, so callers can gate the
+// idempotent installment counter increment on a real scheduled->paid
+// transition. Env-gated on ACE_PAYMENTPLANITEM_TABLE.
+async function upsertPlanItemByStripeId(stripeInvoiceId, fields) {
+    if (!ACE_PAYMENTPLANITEM_TABLE) {
+        console.warn('ACE_PAYMENTPLANITEM_TABLE not set — skipping PaymentPlanItem upsert for', stripeInvoiceId);
+        return { skipped: true };
+    }
+    const now = new Date().toISOString();
+    const existing = await scanFirstByField(ACE_PAYMENTPLANITEM_TABLE, 'stripeInvoiceId', stripeInvoiceId);
+    if (existing) {
+        const wasPaid = existing.status === 'paid';
+        const expr = buildSetExpression({ ...fields, updatedAt: now });
+        if (expr) {
+            await getDocClient().send(new UpdateCommand({
+                TableName: ACE_PAYMENTPLANITEM_TABLE,
+                Key: { id: existing.id },
+                ...expr,
+            }));
+        }
+        return { id: existing.id, updated: true, wasPaid };
+    }
+    const id = randomUUID();
+    const item = {
+        id,
+        __typename: 'PaymentPlanItem',
+        stripeInvoiceId,
+        createdAt: now,
+        updatedAt: now,
+        ...fields,
+    };
+    for (const k of Object.keys(item)) {
+        if (item[k] === undefined) delete item[k];
+    }
+    await getDocClient().send(new PutCommand({ TableName: ACE_PAYMENTPLANITEM_TABLE, Item: item }));
+    return { id, created: true, wasPaid: false };
+}
+
+// MEDIUM-C fallback: find a PaymentPlanItem whose stored stripeInvoiceId equals
+// the event invoice id (used when down-payment metadata is absent/relocated).
+async function findPlanItemByStripeInvoiceId(invoiceId) {
+    if (!ACE_PAYMENTPLANITEM_TABLE) {
+        console.warn('ACE_PAYMENTPLANITEM_TABLE not set — skipping PaymentPlanItem lookup for', invoiceId);
+        return undefined;
+    }
+    return scanFirstByField(ACE_PAYMENTPLANITEM_TABLE, 'stripeInvoiceId', invoiceId);
+}
+
+// Find a PaymentPlan by its released subscription id (installment matching).
+async function findPaymentPlanBySubscriptionId(subId) {
+    if (!ACE_PAYMENTPLAN_TABLE) {
+        console.warn('ACE_PAYMENTPLAN_TABLE not set — skipping PaymentPlan lookup by subscription', subId);
+        return undefined;
+    }
+    if (!subId) return undefined;
+    return scanFirstByField(ACE_PAYMENTPLAN_TABLE, 'stripeSubscriptionId', subId);
+}
+
+// Find a PaymentPlan by its subscription-schedule id.
+async function findPaymentPlanByScheduleId(scheduleId) {
+    if (!ACE_PAYMENTPLAN_TABLE) {
+        console.warn('ACE_PAYMENTPLAN_TABLE not set — skipping PaymentPlan lookup by schedule', scheduleId);
+        return undefined;
+    }
+    if (!scheduleId) return undefined;
+    return scanFirstByField(ACE_PAYMENTPLAN_TABLE, 'stripeScheduleId', scheduleId);
+}
+
+// Update arbitrary fields on a PaymentPlan row by id. Env-gated.
+async function updatePaymentPlan(planId, fields) {
+    if (!ACE_PAYMENTPLAN_TABLE) {
+        console.warn('ACE_PAYMENTPLAN_TABLE not set — skipping PaymentPlan update for', planId);
+        return;
+    }
+    if (!planId) {
+        console.warn('No planId — skipping PaymentPlan update');
+        return;
+    }
+    const expr = buildSetExpression({ ...fields, updatedAt: new Date().toISOString() });
+    if (!expr) return;
+    await getDocClient().send(new UpdateCommand({
+        TableName: ACE_PAYMENTPLAN_TABLE,
+        Key: { id: planId },
+        ...expr,
+    }));
+}
+
+// Stamp PaymentPlan.stripeSubscriptionId for the plan matching this schedule id
+// (HIGH-2). Scans by stripeScheduleId, updates by the row's primary key.
+async function setPlanSubscriptionId(scheduleId, subId) {
+    if (!ACE_PAYMENTPLAN_TABLE) {
+        console.warn('ACE_PAYMENTPLAN_TABLE not set — skipping stripeSubscriptionId stamp for schedule', scheduleId);
+        return;
+    }
+    const plan = await scanFirstByField(ACE_PAYMENTPLAN_TABLE, 'stripeScheduleId', scheduleId);
+    if (!plan) {
+        console.warn('No PaymentPlan for schedule', scheduleId, '— cannot stamp stripeSubscriptionId');
+        return;
+    }
+    await updatePaymentPlan(plan.id, { stripeSubscriptionId: subId });
+}
+
+// Flag a plan as defaulted — FLAG ONLY, no license revocation (design §B4). The
+// actual license-end is a manual owner action (TODO(license-revocation)).
+async function flagPlanDefault(planId) {
+    await updatePaymentPlan(planId, { defaulted: true, status: 'defaulted' });
+}
+
+// Mark a down-payment PaymentPlanItem failed (matched by stripeInvoiceId).
+async function markPlanItemFailed(planId, stripeInvoiceId) {
+    await upsertPlanItemByStripeId(stripeInvoiceId, {
+        status: 'failed',
+        ...(planId ? { planId } : {}),
+    });
+}
+
+// Mark an installment PaymentPlanItem failed (matched by stripeInvoiceId).
+async function markInstallmentFailed(plan, stripeInvoiceId) {
+    await upsertPlanItemByStripeId(stripeInvoiceId, {
+        status: 'failed',
+        kind: 'installment',
+        ...(plan?.id ? { planId: plan.id } : {}),
+    });
+}
+
+// Reconcile a paid down-payment / one-off PaymentPlanItem by stripeInvoiceId.
+// Matching is by stripeInvoiceId (the upsert key); planItemId (when known from
+// metadata or the matched row) is carried as the row's own `id` so the webhook
+// updates the SAME PaymentPlanItem the admin create flow stamped, rather than
+// minting a parallel row.
+async function reconcilePlanItemPaid({ stripeInvoiceId, planId, planItemId, kind, amountPaid, paymentIntentId }) {
+    await upsertPlanItemByStripeId(stripeInvoiceId, {
+        status: 'paid',
+        paidAt: new Date().toISOString(),
+        ...(planId ? { planId } : {}),
+        ...(planItemId ? { planItemId } : {}),
+        ...(kind ? { kind } : {}),
+        ...(amountPaid != null ? { amount: amountPaid } : {}),
+        ...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
+    });
+}
+
+// IDEMPOTENT installment reconciliation (design §B4 / NIT-4). Upserts the
+// installment PaymentPlanItem by stripeInvoiceId; increments
+// PaymentPlan.installmentsPaidCount ONLY on a real scheduled->paid transition
+// (wasPaid === false), using the atomic DynamoDB counter
+// `SET #c = if_not_exists(#c,:zero) + :one`. Then re-reads the counter to set
+// minimumMet (installmentsPaidCount >= minimumPaymentsOwed) and status (the
+// PINNED completion predicate: installmentCount > 0 && installmentsPaidCount >=
+// installmentCount — read ONLY the plan-level installmentCount, never the
+// series-descriptor item). A redelivered invoice.paid updates nothing new and
+// does not double-count.
+async function reconcileInstallmentPaid(plan, { stripeInvoiceId, amountPaid, paymentIntentId }) {
+    const result = await upsertPlanItemByStripeId(stripeInvoiceId, {
+        status: 'paid',
+        kind: 'installment',
+        paidAt: new Date().toISOString(),
+        ...(plan?.id ? { planId: plan.id } : {}),
+        ...(amountPaid != null ? { amount: amountPaid } : {}),
+        ...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
+    });
+
+    // No table (env unset) or an already-paid row (redelivery) => do not count.
+    if (!result || result.skipped || result.wasPaid) return;
+    if (!ACE_PAYMENTPLAN_TABLE || !plan?.id) {
+        if (!ACE_PAYMENTPLAN_TABLE) {
+            console.warn('ACE_PAYMENTPLAN_TABLE not set — skipping installment counter for', stripeInvoiceId);
+        }
+        return;
+    }
+
+    // Atomic increment of the paid counter on a real transition.
+    const updated = await getDocClient().send(new UpdateCommand({
+        TableName: ACE_PAYMENTPLAN_TABLE,
+        Key: { id: plan.id },
+        UpdateExpression: 'SET #c = if_not_exists(#c, :zero) + :one, #u = :now',
+        ExpressionAttributeNames: { '#c': 'installmentsPaidCount', '#u': 'updatedAt' },
+        ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':now': new Date().toISOString() },
+        ReturnValues: 'ALL_NEW',
+    }));
+    const after = updated?.Attributes || {};
+    const paidCount = after.installmentsPaidCount != null
+        ? after.installmentsPaidCount
+        : (plan.installmentsPaidCount || 0) + 1;
+
+    // minimumMet when the paid count reaches the floor.
+    const minOwed = after.minimumPaymentsOwed != null ? after.minimumPaymentsOwed : plan.minimumPaymentsOwed;
+    const planFields = {};
+    if (minOwed != null && paidCount >= minOwed && !after.minimumMet) {
+        planFields.minimumMet = true;
+    }
+    // PINNED completion predicate — plan-level installmentCount ONLY (NIT-4).
+    const installmentCount = after.installmentCount != null ? after.installmentCount : plan.installmentCount;
+    if (installmentCount > 0 && paidCount >= installmentCount && after.status !== 'completed') {
+        planFields.status = 'completed';
+    }
+    if (Object.keys(planFields).length) {
+        await updatePaymentPlan(plan.id, planFields);
+    }
+}
+
+// MEDIUM-3 recovery: when the schedule linkage first stamps the subscription
+// id, pull EVERY already-emitted paid invoice for that subscription and run
+// each through the idempotent reconcileInstallmentPaid, so an invoice.paid that
+// arrived BEFORE the schedule event is not lost to event ordering (Stripe never
+// re-delivers an already-200'd event). Safe to run over the full list because
+// reconcileInstallmentPaid is idempotent. Hits Stripe (stripeGet) — not
+// env-gated here; the DB writes it drives are env-gated downstream.
+async function backReconcilePaidInstallments(plan, subId) {
+    const paid = await stripeGet('/invoices?subscription=' + encodeURIComponent(subId) + '&status=paid&limit=100');
+    for (const inv of (paid?.data ?? [])) {
+        await reconcileInstallmentPaid(plan, {
+            stripeInvoiceId: inv.id,
+            amountPaid: inv.amount_paid != null ? inv.amount_paid / 100 : undefined,
+            paymentIntentId: inv.payment_intent,
+        });
+    }
+}
+
 // === STRIPE: WEBHOOK ===
 // Receives Stripe events. Verifies the Stripe-Signature header against
 // STRIPE_WEBHOOK_SECRET (HMAC-SHA256) when set; otherwise parses WITHOUT
@@ -1539,7 +1877,46 @@ async function handleStripeWebhook(event, headers) {
                 break;
             }
             case 'invoice.paid': {
-                // TD-4 upsert by Stripe invoice id.
+                // 1) Down payment — match by OUR metadata, else fall back to the
+                //    stored stripeInvoiceId (MEDIUM-C). Early return on EITHER
+                //    match; do NOT fall through to the maintenance upsert (NIT-1).
+                const dpByMeta = obj.metadata?.kind === 'down_payment';
+                const dpItem = dpByMeta ? null : await findPlanItemByStripeInvoiceId(obj.id);
+                if (dpByMeta || (dpItem && dpItem.kind === 'down_payment')) {
+                    await reconcilePlanItemPaid({
+                        stripeInvoiceId: obj.id,
+                        planId: obj.metadata?.planId ?? dpItem?.planId,
+                        planItemId: obj.metadata?.planItemId ?? dpItem?.id,
+                        kind: 'down_payment',
+                        amountPaid: obj.amount_paid != null ? obj.amount_paid / 100 : undefined,
+                        paymentIntentId: obj.payment_intent,
+                    });
+                    break; // EARLY RETURN — matched by metadata OR stripeInvoiceId.
+                }
+                // 2) Installment — generated by the schedule's subscription;
+                //    match by the version-tolerant subscription id (HIGH-1).
+                const subId = resolveInvoiceSubscriptionId(obj);
+                if (subId) {
+                    const plan = await findPaymentPlanBySubscriptionId(subId);
+                    if (plan) {
+                        await reconcileInstallmentPaid(plan, {
+                            stripeInvoiceId: obj.id,
+                            amountPaid: obj.amount_paid != null ? obj.amount_paid / 100 : undefined,
+                            paymentIntentId: obj.payment_intent,
+                        });
+                        break; // EARLY RETURN.
+                    }
+                    // No plan yet (stripeSubscriptionId not stamped — reversed
+                    // order). The subscription_schedule.* branch back-reconciles
+                    // this exact invoice once it stamps the id (MEDIUM-3). Do NOT
+                    // fall through to the maintenance upsert for a subscription
+                    // invoice.
+                    console.warn('installment invoice.paid', obj.id, 'for sub', subId,
+                        'has no matching plan yet — will be back-reconciled on schedule linkage');
+                    break;
+                }
+                // 3) Fall through ONLY for everything else — existing maintenance
+                //    path (TD-4 upsert by Stripe invoice id).
                 await upsertInvoiceByStripeId(obj.id, {
                     status: 'paid',
                     paidAt: new Date().toISOString(),
@@ -1548,15 +1925,82 @@ async function handleStripeWebhook(event, headers) {
                 break;
             }
             case 'invoice.payment_failed': {
+                // Down payment (send_invoice invoices have due_date). Match by
+                // metadata, else by stored stripeInvoiceId (MEDIUM-C / NIT-1).
+                const dpByMeta = obj.metadata?.kind === 'down_payment';
+                const dpItem = dpByMeta ? null : await findPlanItemByStripeInvoiceId(obj.id);
+                if (dpByMeta || (dpItem && dpItem.kind === 'down_payment')) {
+                    const dpPlanId = obj.metadata?.planId ?? dpItem?.planId;
+                    await markPlanItemFailed(dpPlanId, obj.id);
+                    const graceAnchor = resolveGraceAnchor(obj); // MEDIUM-1
+                    if (graceAnchor && (nowSec() - graceAnchor) > 15 * 24 * 3600) {
+                        await flagPlanDefault(dpPlanId);
+                    }
+                    break; // EARLY RETURN on either match (NIT-1).
+                }
+                // Installment (auto-charge; due_date is null — resolveGraceAnchor
+                // falls to line-level period.end).
+                const subId = resolveInvoiceSubscriptionId(obj); // HIGH-1
+                if (subId) {
+                    const plan = await findPaymentPlanBySubscriptionId(subId);
+                    if (plan) {
+                        await markInstallmentFailed(plan, obj.id);
+                        const graceAnchor = resolveGraceAnchor(obj); // MEDIUM-1
+                        if (graceAnchor && (nowSec() - graceAnchor) > 15 * 24 * 3600) {
+                            await flagPlanDefault(plan.id);
+                        }
+                        break;
+                    }
+                    console.warn('installment invoice.payment_failed', obj.id, 'for sub', subId,
+                        'has no matching plan yet — schedule linkage will reconcile');
+                    break;
+                }
+                // Else: existing maintenance behavior (MEDIUM-A planId fallback).
                 const planId = obj.metadata?.planId || obj.subscription_details?.metadata?.planId;
                 await updateMaintenancePlanFields(planId, { status: 'past_due' });
                 break;
             }
+            case 'subscription_schedule.updated':
+            case 'subscription_schedule.released': {
+                // HIGH-2 linkage + MEDIUM-3 back-reconcile.
+                const plan = await findPaymentPlanByScheduleId(obj.id);
+                if (plan && !plan.stripeSubscriptionId) {
+                    // Prefer the event field if present, else READ it from the
+                    // schedule object (do NOT assume the event carries it).
+                    const subId = obj.subscription ?? await getScheduleSubscriptionId(obj.id);
+                    if (subId) {
+                        await setPlanSubscriptionId(obj.id, subId);
+                        // Recover any installment invoices Stripe already 200'd
+                        // before the id was stamped (reversed order).
+                        await backReconcilePaidInstallments(plan, subId);
+                    }
+                }
+                break;
+            }
+            case 'subscription_schedule.completed':
+            case 'subscription_schedule.canceled':
+            case 'subscription_schedule.aborted': {
+                const plan = await findPaymentPlanByScheduleId(obj.id);
+                if (plan) {
+                    // Treat a terminal event as completion ONLY when every
+                    // installment is paid (PINNED predicate, NIT-4). Otherwise a
+                    // non-.completed terminal event just records a note.
+                    if (plan.installmentCount > 0 && plan.installmentsPaidCount >= plan.installmentCount) {
+                        await updatePaymentPlan(plan.id, { status: 'completed' });
+                    } else if (stripeEvent.type !== 'subscription_schedule.completed') {
+                        await updatePaymentPlan(plan.id, {
+                            notes: appendNote(plan.notes,
+                                `schedule ${stripeEvent.type} with ${plan.installmentsPaidCount}/${plan.installmentCount} paid`),
+                        });
+                    }
+                }
+                break;
+            }
             case 'customer.subscription.updated': {
-                const planId = obj.metadata?.planId;
-                const nextBillingDate = obj.current_period_end
-                    ? new Date(obj.current_period_end * 1000).toISOString()
-                    : undefined;
+                // MEDIUM-A planId fallback + endive period-end item fallback.
+                const planId = obj.metadata?.planId ?? obj.subscription_details?.metadata?.planId;
+                const periodEnd = obj.current_period_end ?? obj.items?.data?.[0]?.current_period_end;
+                const nextBillingDate = periodEnd ? new Date(periodEnd * 1000).toISOString() : undefined;
                 await updateMaintenancePlanFields(planId, {
                     status: obj.status || 'active',
                     nextBillingDate,
@@ -1564,7 +2008,8 @@ async function handleStripeWebhook(event, headers) {
                 break;
             }
             case 'customer.subscription.deleted': {
-                const planId = obj.metadata?.planId;
+                // MEDIUM-A planId fallback.
+                const planId = obj.metadata?.planId ?? obj.subscription_details?.metadata?.planId;
                 await updateMaintenancePlanFields(planId, {
                     status: 'cancelled',
                     cancelledAt: new Date().toISOString(),
@@ -1621,4 +2066,21 @@ export {
     handleCreateSubscriptionSchedule,
     handleStripeSubscription,
     handleStripeCheckout,
+    handleStripeWebhook,
+    // --- FEAT-002 webhook reconciliation (B4/B5) ---
+    nowSec,
+    appendNote,
+    upsertPlanItemByStripeId,
+    findPlanItemByStripeInvoiceId,
+    findPaymentPlanBySubscriptionId,
+    findPaymentPlanByScheduleId,
+    updatePaymentPlan,
+    setPlanSubscriptionId,
+    flagPlanDefault,
+    markPlanItemFailed,
+    markInstallmentFailed,
+    reconcilePlanItemPaid,
+    reconcileInstallmentPaid,
+    backReconcilePaidInstallments,
+    __setDocClientForTests,
 };
