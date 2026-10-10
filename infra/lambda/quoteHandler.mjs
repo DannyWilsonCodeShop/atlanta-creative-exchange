@@ -723,14 +723,21 @@ async function sendCustomerConfirmation(data) {
 
 <div style="background: #f0f0f0; border-radius: 8px; padding: 20px; margin: 24px 0;">
 <h3 style="font-size: 14px; color: #333; margin-bottom: 12px;">Here's what you submitted:</h3>
-<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Event:</strong> ${data.eventType}</p>
-<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Date(s):</strong> ${(data.eventDates || []).map(d => d.date).join(', ')}</p>
-<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Services:</strong> ${data.services.join(', ')}</p>
-<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Venue:</strong> ${data.venueName}</p>
-<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Size:</strong> ${data.roomSize}</p>
+${data.serviceType === 'digital' ? `
+<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>What you need:</strong> ${(data.digitalServices || []).join(', ') || 'Not specified'}</p>
+${data.platform ? `<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Platform:</strong> ${data.platform}</p>` : ''}
+${data.projectDescription ? `<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Project:</strong> ${data.projectDescription}</p>` : ''}
+${data.timeline ? `<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Timeline:</strong> ${data.timeline}</p>` : ''}
+` : `
+<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Event:</strong> ${data.eventType || 'Not specified'}</p>
+<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Date(s):</strong> ${(data.eventDates || []).map(d => d.date).join(', ') || 'TBD'}</p>
+<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Services:</strong> ${(data.services || []).join(', ') || 'Not specified'}</p>
+<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Venue:</strong> ${data.venueName || 'TBD'}</p>
+<p style="color: #555; font-size: 14px; margin: 4px 0;"><strong>Size:</strong> ${data.roomSize || 'TBD'}</p>
+`}
 </div>
 
-<p style="color: #555; font-size: 14px; line-height: 1.6;"><strong>Payment Terms:</strong> A deposit is required to secure your date. The remaining balance is due within 24 hours of event completion. We'll provide full payment details with your quote.</p>
+${data.serviceType === 'digital' ? '' : `<p style="color: #555; font-size: 14px; line-height: 1.6;"><strong>Payment Terms:</strong> A deposit is required to secure your date. The remaining balance is due within 24 hours of event completion. We'll provide full payment details with your quote.</p>`}
 
 <p style="color: #555; font-size: 16px; line-height: 1.6; margin-top: 24px;">If you have questions in the meantime, reply to this email or reach us at <a href="mailto:info@atlantacreativeexchange.com" style="color: #7b2ff7;">info@atlantacreativeexchange.com</a>.</p>
 
