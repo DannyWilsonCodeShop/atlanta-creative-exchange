@@ -80,6 +80,119 @@ async function stripeRequest(path, params) {
     return json;
 }
 
+/**
+ * GET from the Stripe REST API. Returns parsed JSON on 2xx, throws on non-2xx
+ * logging only Stripe's error message (never the key). Mirrors stripeRequest
+ * (same Bearer auth from process.env.STRIPE_SECRET_KEY) but sends no body
+ * (design §B0).
+ */
+async function stripeGet(path) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+        throw new Error('STRIPE_SECRET_KEY is not set on the Lambda');
+    }
+    const res = await fetch(`${STRIPE_API}${path}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${key}` },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const msg = json?.error?.message || `Stripe GET failed (${res.status})`;
+        console.error('Stripe API error:', msg);
+        throw new Error(msg);
+    }
+    return json;
+}
+
+/**
+ * Resolve (find-or-create) a Stripe customer id for an email (design §B0).
+ * Used by both the down-payment invoice route (B1) and the installment
+ * schedule route (B2). Stripe returns `data` newest-first.
+ *   - exactly one match  -> use it
+ *   - more than one      -> use the most recent (data[0]) and warn
+ *   - none               -> POST /customers (with name when available)
+ */
+async function ensureStripeCustomer(email, name) {
+    const r = await stripeGet('/customers?email=' + encodeURIComponent(email) + '&limit=3');
+    const data = r?.data || [];
+    if (data.length === 1) {
+        return data[0].id;
+    }
+    if (data.length > 1) {
+        console.warn('Multiple Stripe customers for', email, '— using most recent');
+        return data[0].id;
+    }
+    const params = { email };
+    if (name) params.name = name;
+    const created = await stripeRequest('/customers', params);
+    return created.id;
+}
+
+/**
+ * The subscription id an invoice belongs to, tolerant of API version
+ * 2026-09-30.endive relocating the field off the top level onto nested/line/
+ * item locations (design §B0, HIGH-1). Returns a string id or undefined.
+ *
+ * CONFIRMED (FEAT-001 event-replay against real endive events, §Acceptance
+ * #10a): on this account `obj.subscription` is UNDEFINED on invoice events; the
+ * id lives at **obj.parent.subscription_details.subscription** (2nd candidate).
+ * The failed auto-charge invoice also exposes it at
+ * lines[0].parent.subscription_item_details.subscription (5th candidate). The
+ * full fallback chain is retained regardless (verify-then-rely).
+ */
+function resolveInvoiceSubscriptionId(obj) {
+    return (
+        obj.subscription
+        ?? obj.parent?.subscription_details?.subscription
+        ?? obj.subscription_details?.subscription
+        ?? obj.lines?.data?.[0]?.subscription
+        ?? obj.lines?.data?.[0]?.parent?.subscription_item_details?.subscription
+        ?? undefined
+    );
+}
+
+/**
+ * The unix-seconds anchor for the 15-day grace clock on a failed invoice,
+ * tolerant of period_end moving to the line level under endive (design §B0,
+ * MEDIUM-1). Logs when it falls through to invoice `created` so the anchor
+ * choice is visible.
+ *
+ * CONFIRMED (FEAT-001 event-replay against a real endive invoice.payment_failed
+ * auto-charge event, §Acceptance #10c): `obj.due_date` is NULL on auto-charge
+ * installment invoices and the anchor resolves to **lines[0].period.end** (2nd
+ * candidate), NOT the `created` fall-through. send_invoice down payments still
+ * carry due_date (1st candidate). The fallback chain is retained regardless.
+ */
+function resolveGraceAnchor(obj) {
+    const anchor =
+        obj.due_date                               // send_invoice down payments
+        ?? obj.lines?.data?.[0]?.period?.end        // endive line-level period end
+        ?? obj.period_end                           // pre-endive invoice-level
+        ?? obj.created;                             // last resort (invoice creation)
+    if (anchor === obj.created) {
+        console.warn('grace anchor fell through to invoice.created for', obj.id,
+            '— no due_date/period.end present; default clock starts at creation');
+    }
+    return anchor;
+}
+
+/**
+ * The released subscription id for a schedule, read directly from the schedule
+ * object (design §B2a, HIGH-2). Hits Stripe (not DynamoDB), so it is NOT
+ * env-gated. Used by FEAT-002's webhook to stamp PaymentPlan.stripeSubscriptionId
+ * without trusting that an event carried the field.
+ *
+ * CONFIRMED (FEAT-001 probe + event-replay, §Acceptance #10b): the released
+ * subscription id lives at **subscription_schedule.subscription**. It is null
+ * for a future-start schedule (status not_started) and becomes non-null once a
+ * phase activates — so the webhook prefers obj.subscription when the event
+ * already carries it, else reads it here.
+ */
+async function getScheduleSubscriptionId(scheduleId) {
+    const sched = await stripeGet('/subscription_schedules/' + scheduleId);
+    return sched?.subscription ?? undefined;
+}
+
 const REGION = process.env.AWS_REGION || 'us-east-1';
 const TABLE_NAME = process.env.TABLE_NAME || 'ACE-Quotes';
 const AMPLIFY_QUOTE_TABLE = process.env.AMPLIFY_QUOTE_TABLE || 'Quote-7zcql4kvqrbfrax5eqpq3t3hmu-NONE';
@@ -194,6 +307,17 @@ export const handler = async (event) => {
 
         // Route: /stripe/* (create endpoints). Routed BEFORE the spam-name check
         // like /notify because Stripe payloads carry no firstName/lastName.
+        // Ordered so no earlier includes() check is a substring of a later
+        // route's path (design §B router, HIGH-A/HIGH-B).
+        // NOTE: the installment route is '/stripe/installment-schedule' (NOT
+        // '/stripe/create-subscription-schedule'), so it can never be swallowed
+        // by the '/stripe/create-subscription' substring check — HIGH-A.
+        if (path.includes('/stripe/installment-schedule')) {        // NEW — subscription SCHEDULE (36×$1,250)
+            return await handleCreateSubscriptionSchedule(body, headers);
+        }
+        if (path.includes('/stripe/create-plan-invoice')) {         // NEW — dated down-payment invoices
+            return await handleCreatePlanInvoice(body, headers);
+        }
         if (path.includes('/stripe/create-checkout')) {
             return await handleStripeCheckout(body, headers);
         }
@@ -1092,6 +1216,183 @@ async function handleStripeSubscription(data, headers) {
     }
 }
 
+// === STRIPE: CREATE PLAN INVOICE (dated down payment → send_invoice) ===
+// Inputs: { planId, planItemId, amount, currency='usd', dueDate (YYYY-MM-DD),
+//           clientEmail, clientName?, description? }.
+// Creates an invoice item, a send_invoice invoice with a due_date and our
+// correlation metadata, then finalizes it so a hosted invoice URL exists
+// (design §B1). `amount` is MAJOR units (dollars) → minor units server-side.
+// Returns { invoiceId, hostedInvoiceUrl, status }.
+async function handleCreatePlanInvoice(data, headers) {
+    const {
+        planId, planItemId, amount, currency = 'usd', dueDate,
+        clientEmail, clientName, description,
+    } = data || {};
+
+    // --- validation (design §Input validation) ---
+    if (amount == null || Number(amount) <= 0) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'amount must be > 0' }) };
+    }
+    const dueMs = Date.parse(dueDate);
+    if (!Number.isFinite(dueMs)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'invalid dueDate' }) };
+    }
+    if (!planId || !clientEmail) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'planId and clientEmail are required' }) };
+    }
+
+    try {
+        const customer = await ensureStripeCustomer(clientEmail, clientName);
+
+        // 1) invoice item
+        await stripeRequest('/invoiceitems', {
+            customer,
+            amount: Math.round(Number(amount) * 100),
+            currency,
+            description: description || 'ACE payment plan — down payment',
+        });
+
+        // 2) invoice (send_invoice so Stripe never auto-charges; customer pays
+        //    via the hosted invoice page) with our correlation metadata.
+        const invoiceParams = {
+            customer,
+            collection_method: 'send_invoice',
+            due_date: Math.floor(dueMs / 1000),
+            'metadata[kind]': 'down_payment',
+            'metadata[planId]': planId,
+        };
+        if (planItemId) invoiceParams['metadata[planItemId]'] = planItemId;
+        const invoice = await stripeRequest('/invoices', invoiceParams);
+
+        // 3) finalize so a hosted invoice URL exists
+        const finalized = await stripeRequest('/invoices/' + invoice.id + '/finalize', {});
+
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+                invoiceId: finalized.id,
+                hostedInvoiceUrl: finalized.hosted_invoice_url,
+                status: finalized.status,
+            }),
+        };
+    } catch (err) {
+        return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || 'Stripe plan invoice failed' }) };
+    }
+}
+
+// === STRIPE: CREATE SUBSCRIPTION SCHEDULE (fixed-count installments) ===
+// Inputs: { planId, amount, currency='usd', count (36), startDate
+//           (YYYY-MM-DD), anchorDay?, clientEmail, clientName? }.
+// Resolves/reuses a Product + a recurring Price, then creates a
+// subscription_schedule with iterations=count and end_behavior=cancel so the
+// series is finite — the client-visible TERMINATION DATE (design §B2).
+// Returns { scheduleId }.
+async function handleCreateSubscriptionSchedule(data, headers) {
+    const {
+        planId, amount, currency = 'usd', count, startDate, anchorDay,
+        clientEmail, clientName,
+    } = data || {};
+
+    // --- validation (design §Input validation) ---
+    if (amount == null || Number(amount) <= 0) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'amount must be > 0' }) };
+    }
+    const iterations = Number(count);
+    if (!Number.isInteger(iterations) || iterations < 1) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'count must be an integer >= 1' }) };
+    }
+    if (anchorDay != null && (!Number.isInteger(Number(anchorDay)) || Number(anchorDay) < 1 || Number(anchorDay) > 28)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'anchorDay must be 1-28' }) };
+    }
+    const startMs = Date.parse(startDate);
+    if (!Number.isFinite(startMs)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'invalid startDate' }) };
+    }
+    if (!planId || !clientEmail) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'planId and clientEmail are required' }) };
+    }
+
+    try {
+        const customer = await ensureStripeCustomer(clientEmail, clientName);
+        const unitAmount = Math.round(Number(amount) * 100);
+
+        // 1) Resolve the reusable installment Product.
+        let productId = process.env.ACE_INSTALLMENT_PRODUCT_ID;
+        if (!productId) {
+            try {
+                const found = await stripeGet(
+                    '/products/search?query=' + encodeURIComponent("metadata['ace_kind']:'installment'") + '&limit=1',
+                );
+                if (found?.data?.length) productId = found.data[0].id;
+            } catch (searchErr) {
+                // product search can be unavailable in some accounts — fall through to create
+                console.warn('product search failed, will create product:', searchErr.message);
+            }
+        }
+        if (!productId) {
+            const product = await stripeRequest('/products', {
+                name: 'ACE Installment',
+                'metadata[ace_kind]': 'installment',
+            });
+            productId = product.id;
+        }
+
+        // 2) Look up an existing recurring Price before creating one (NIT-2):
+        //    reuse the first active monthly Price with matching unit_amount.
+        let priceId;
+        const prices = await stripeGet(
+            '/prices?product=' + encodeURIComponent(productId)
+            + '&currency=' + encodeURIComponent(currency)
+            + '&active=true&limit=100',
+        );
+        const match = (prices?.data || []).find((p) =>
+            p.unit_amount === unitAmount
+            && p.recurring?.interval === 'month'
+            && p.recurring?.interval_count === 1);
+        if (match) {
+            priceId = match.id;
+        } else {
+            const price = await stripeRequest('/prices', {
+                product: productId,
+                currency,
+                unit_amount: unitAmount,
+                'recurring[interval]': 'month',
+                'recurring[interval_count]': 1,
+            });
+            priceId = price.id;
+        }
+
+        // 3) Create the schedule referencing the Price (design §B2 primary
+        //    shape; price_data is the documented fallback only if the probe
+        //    shows referenced-price is rejected — see probes/RESULTS.md).
+        //
+        //    endive note (probe-confirmed, verify-then-rely): the API version
+        //    2026-09-30.endive REMOVED the phase `iterations` parameter the
+        //    design (Rev 4) named; the finite length is expressed as a monthly
+        //    `duration` of `count` iterations instead. end_behavior=cancel makes
+        //    the series finite (count charges then stop) — the client-visible
+        //    TERMINATION DATE. Behavior is identical to iterations=count.
+        const schedule = await stripeRequest('/subscription_schedules', {
+            customer,
+            start_date: Math.floor(startMs / 1000),
+            end_behavior: 'cancel',
+            'phases[0][items][0][price]': priceId,
+            'phases[0][items][0][quantity]': 1,
+            'phases[0][duration][interval]': 'month',
+            'phases[0][duration][interval_count]': iterations,
+            'phases[0][metadata][planId]': planId,
+            'phases[0][metadata][kind]': 'installment',
+            'metadata[planId]': planId,
+            'metadata[kind]': 'installment',
+        });
+
+        return { statusCode: 200, headers, body: JSON.stringify({ scheduleId: schedule.id }) };
+    } catch (err) {
+        return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || 'Stripe subscription schedule failed' }) };
+    }
+}
+
 // === STRIPE: TD-4 UPSERT by stripeInvoiceId ===
 // The Invoice table has NO index on stripeInvoiceId (only `id` HASH and
 // gsi-Client.invoices), so we Scan with a FilterExpression to find an existing
@@ -1304,3 +1605,20 @@ function verifyStripeSignature(rawBody, sigHeader, secret) {
         return false;
     }
 }
+
+// === TEST SURFACE ===
+// Named exports used by the *.test.mjs suites (node --test). These do NOT
+// change the Lambda runtime: AWS invokes `handler`; the extra named exports are
+// inert at runtime and keep the file dependency-free.
+export {
+    stripeForm,
+    stripeGet,
+    ensureStripeCustomer,
+    resolveInvoiceSubscriptionId,
+    resolveGraceAnchor,
+    getScheduleSubscriptionId,
+    handleCreatePlanInvoice,
+    handleCreateSubscriptionSchedule,
+    handleStripeSubscription,
+    handleStripeCheckout,
+};

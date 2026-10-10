@@ -1,0 +1,992 @@
+{
+  "invoice.paid": {
+    "id": "evt_1UOnt5QwBWCeA1acHJx64XTK",
+    "object": "event",
+    "api_version": "2026-09-30.endive",
+    "created": 1791591102,
+    "data": {
+      "object": {
+        "id": "in_1UOnsxQwBWCeA1ac1vCju8nB",
+        "object": "invoice",
+        "account_country": "US",
+        "account_name": "Atlanta Creative Exchange LC",
+        "account_tax_ids": null,
+        "amount_due": 375000,
+        "amount_overpaid": 0,
+        "amount_paid": 375000,
+        "amount_remaining": 0,
+        "amount_shipping": 0,
+        "application": null,
+        "attempt_count": 1,
+        "attempted": true,
+        "auto_advance": false,
+        "automatic_tax": {
+          "disabled_reason": null,
+          "enabled": false,
+          "liability": null,
+          "provider": null,
+          "status": null
+        },
+        "automatically_finalizes_at": null,
+        "billing_reason": "subscription_cycle",
+        "collection_method": "charge_automatically",
+        "created": 1794269472,
+        "currency": "usd",
+        "custom_fields": null,
+        "customer": "cus_VPd8D0pHkp2tKE",
+        "customer_account": null,
+        "customer_address": null,
+        "customer_email": "replay-1791591072543@example.com",
+        "customer_name": "Replay",
+        "customer_phone": null,
+        "customer_shipping": null,
+        "customer_tax_exempt": "none",
+        "customer_tax_ids": [],
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "description": null,
+        "discounts": [],
+        "due_date": null,
+        "effective_at": 1794273072,
+        "ending_balance": 0,
+        "footer": null,
+        "from_invoice": null,
+        "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1UOcaAQwBWCeA1ac/test_YWNjdF8xVU9jYUFRd0JXQ2VBMWFjLF9WUGQ5b3NPbk4zZklxdDVsT0V6Ym83eEl0SWVmZkltLDE4MjEzMTkwMg0200h8yU5Do8?s=ap",
+        "invoice_pdf": "https://pay.stripe.com/invoice/acct_1UOcaAQwBWCeA1ac/test_YWNjdF8xVU9jYUFRd0JXQ2VBMWFjLF9WUGQ5b3NPbk4zZklxdDVsT0V6Ym83eEl0SWVmZkltLDE4MjEzMTkwMg0200h8yU5Do8/pdf?s=ap",
+        "issuer": {
+          "type": "self"
+        },
+        "last_finalization_error": null,
+        "latest_revision": null,
+        "lines": {
+          "object": "list",
+          "data": [
+            {
+              "id": "il_1Ua2eaQwBWCeA1acpvJMe6YB",
+              "object": "line_item",
+              "amount": 250000,
+              "currency": "usd",
+              "description": "ACE down payment (replay)",
+              "discount_amounts": [],
+              "discountable": true,
+              "discounts": [],
+              "invoice": "in_1UOnsxQwBWCeA1ac1vCju8nB",
+              "livemode": false,
+              "metadata": {},
+              "parent": {
+                "invoice_item_details": {
+                  "invoice_item": "ii_1UOnscQwBWCeA1acFfOUSYW4",
+                  "proration": false,
+                  "proration_details": {
+                    "credited_items": null
+                  },
+                  "subscription": null
+                },
+                "subscription_item_details": null,
+                "type": "invoice_item_details"
+              },
+              "period": {
+                "end": 1791591072,
+                "start": 1791591072
+              },
+              "pretax_credit_amounts": [],
+              "pricing": {
+                "price_details": {
+                  "price": "price_1UOnsNQwBWCeA1acvugflniv",
+                  "product": "prod_VPd8orjq5bwDIV"
+                },
+                "type": "price_details",
+                "unit_amount_decimal": "250000"
+              },
+              "quantity": 1,
+              "quantity_decimal": "1",
+              "subtotal": 250000,
+              "taxes": []
+            },
+            {
+              "id": "il_1Ua2ebQwBWCeA1acvqHDwEWx",
+              "object": "line_item",
+              "amount": 125000,
+              "currency": "usd",
+              "description": "1 × ACE Installment (replay) (at $1,250.00 / month)",
+              "discount_amounts": [],
+              "discountable": true,
+              "discounts": [],
+              "invoice": "in_1UOnsxQwBWCeA1ac1vCju8nB",
+              "livemode": false,
+              "metadata": {
+                "kind": "installment",
+                "planId": "replay_plan"
+              },
+              "parent": {
+                "invoice_item_details": null,
+                "subscription_item_details": {
+                  "invoice_item": null,
+                  "proration": false,
+                  "proration_details": {
+                    "credited_items": null
+                  },
+                  "subscription": "sub_1UOnscQwBWCeA1acAlMyCnNx",
+                  "subscription_item": "si_VPd8MjeoIlsKaH"
+                },
+                "type": "subscription_item_details"
+              },
+              "period": {
+                "end": 1796861472,
+                "start": 1794269472
+              },
+              "pretax_credit_amounts": [],
+              "pricing": {
+                "price_details": {
+                  "price": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                  "product": "prod_VPd8Dm7A4kzqSE"
+                },
+                "type": "price_details",
+                "unit_amount_decimal": "125000"
+              },
+              "quantity": 1,
+              "quantity_decimal": "1",
+              "subtotal": 125000,
+              "taxes": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 2,
+          "url": "/v1/invoices/in_1UOnsxQwBWCeA1ac1vCju8nB/lines"
+        },
+        "livemode": false,
+        "metadata": {},
+        "next_payment_attempt": null,
+        "number": "SPJ6V4M6-0003",
+        "on_behalf_of": null,
+        "parent": {
+          "quote_details": null,
+          "subscription_details": {
+            "metadata": {
+              "kind": "installment",
+              "planId": "replay_plan"
+            },
+            "subscription": "sub_1UOnscQwBWCeA1acAlMyCnNx"
+          },
+          "type": "subscription_details"
+        },
+        "payment_settings": {
+          "default_mandate": null,
+          "payment_method_options": null,
+          "payment_method_types": null
+        },
+        "period_end": 1794269472,
+        "period_start": 1791591072,
+        "post_payment_credit_notes_amount": 0,
+        "pre_payment_credit_notes_amount": 0,
+        "receipt_number": null,
+        "rendering": null,
+        "shipping_cost": null,
+        "shipping_details": null,
+        "starting_balance": 0,
+        "statement_descriptor": null,
+        "status": "paid",
+        "status_transitions": {
+          "finalized_at": 1794273072,
+          "marked_uncollectible_at": null,
+          "paid_at": 1794273072,
+          "voided_at": null
+        },
+        "subtotal": 375000,
+        "subtotal_excluding_tax": 375000,
+        "test_clock": "clock_1UOnsaQwBWCeA1acdyXbcf61",
+        "total": 375000,
+        "total_discount_amounts": [],
+        "total_excluding_tax": 375000,
+        "total_pretax_credit_amounts": [],
+        "total_taxes": [],
+        "webhooks_delivered_at": 1794269472
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 0,
+    "request": {
+      "id": null,
+      "idempotency_key": null
+    },
+    "type": "invoice.paid"
+  },
+  "customer.subscription.updated": {
+    "id": "evt_1UOnsyQwBWCeA1acWHhxdaJG",
+    "object": "event",
+    "api_version": "2026-09-30.endive",
+    "created": 1791591095,
+    "data": {
+      "object": {
+        "id": "sub_1UOnscQwBWCeA1acAlMyCnNx",
+        "object": "subscription",
+        "application": null,
+        "application_fee_percent": null,
+        "automatic_tax": {
+          "disabled_reason": null,
+          "enabled": false,
+          "liability": null
+        },
+        "billing_cycle_anchor": 1791591072,
+        "billing_cycle_anchor_config": null,
+        "billing_mode": {
+          "flexible": {
+            "proration_discounts": "included"
+          },
+          "type": "flexible",
+          "updated_at": 1791591072
+        },
+        "billing_schedules": [],
+        "billing_thresholds": null,
+        "cancel_at": 1886285472,
+        "cancel_at_period_end": false,
+        "canceled_at": 1791591072,
+        "cancellation_details": {
+          "comment": null,
+          "feedback": null,
+          "feedback_option": null,
+          "reason": "cancellation_requested"
+        },
+        "collection_method": "charge_automatically",
+        "created": 1791591072,
+        "currency": "usd",
+        "customer": "cus_VPd8D0pHkp2tKE",
+        "customer_account": null,
+        "days_until_due": null,
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "description": null,
+        "discounts": [],
+        "ended_at": null,
+        "invoice_settings": {
+          "account_tax_ids": null,
+          "custom_fields": null,
+          "description": null,
+          "footer": null,
+          "issuer": {
+            "type": "self"
+          }
+        },
+        "items": {
+          "object": "list",
+          "data": [
+            {
+              "id": "si_VPd8MjeoIlsKaH",
+              "object": "subscription_item",
+              "billing_thresholds": null,
+              "created": 1791591072,
+              "current_period_end": 1796861472,
+              "current_period_start": 1794269472,
+              "current_trial": null,
+              "discounts": [],
+              "metadata": {},
+              "plan": {
+                "id": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "object": "plan",
+                "active": true,
+                "amount": 125000,
+                "amount_decimal": "125000",
+                "billing_scheme": "per_unit",
+                "created": 1791591073,
+                "currency": "usd",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": false,
+                "metadata": {},
+                "meter": null,
+                "nickname": null,
+                "product": "prod_VPd8Dm7A4kzqSE",
+                "tiers_mode": null,
+                "transform_usage": null,
+                "trial_period_days": null,
+                "usage_type": "licensed"
+              },
+              "price": {
+                "id": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "object": "price",
+                "active": true,
+                "billing_scheme": "per_unit",
+                "created": 1791591073,
+                "currency": "usd",
+                "custom_unit_amount": null,
+                "livemode": false,
+                "lookup_key": null,
+                "metadata": {},
+                "nickname": null,
+                "product": "prod_VPd8Dm7A4kzqSE",
+                "recurring": {
+                  "interval": "month",
+                  "interval_count": 1,
+                  "meter": null,
+                  "trial_period_days": null,
+                  "usage_type": "licensed"
+                },
+                "tax_behavior": "unspecified",
+                "tiers_mode": null,
+                "transform_quantity": null,
+                "type": "recurring",
+                "unit_amount": 125000,
+                "unit_amount_decimal": "125000"
+              },
+              "quantity": 1,
+              "subscription": "sub_1UOnscQwBWCeA1acAlMyCnNx",
+              "tax_rates": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/subscription_items?subscription=sub_1UOnscQwBWCeA1acAlMyCnNx"
+        },
+        "latest_invoice": "in_1UOnsxQwBWCeA1ac1vCju8nB",
+        "livemode": false,
+        "managed_payments": {
+          "enabled": false
+        },
+        "metadata": {
+          "kind": "installment",
+          "planId": "replay_plan"
+        },
+        "next_pending_invoice_item_invoice": null,
+        "on_behalf_of": null,
+        "pause_collection": null,
+        "payment_settings": {
+          "payment_method_options": null,
+          "payment_method_types": null,
+          "save_default_payment_method": null
+        },
+        "pending_invoice_item_interval": null,
+        "pending_setup_intent": null,
+        "pending_update": null,
+        "plan": {
+          "id": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+          "object": "plan",
+          "active": true,
+          "amount": 125000,
+          "amount_decimal": "125000",
+          "billing_scheme": "per_unit",
+          "created": 1791591073,
+          "currency": "usd",
+          "interval": "month",
+          "interval_count": 1,
+          "livemode": false,
+          "metadata": {},
+          "meter": null,
+          "nickname": null,
+          "product": "prod_VPd8Dm7A4kzqSE",
+          "tiers_mode": null,
+          "transform_usage": null,
+          "trial_period_days": null,
+          "usage_type": "licensed"
+        },
+        "quantity": 1,
+        "schedule": "sub_sched_1UOnscQwBWCeA1acGloGQMR2",
+        "start_date": 1791591072,
+        "status": "active",
+        "test_clock": "clock_1UOnsaQwBWCeA1acdyXbcf61",
+        "transfer_data": null,
+        "trial_end": null,
+        "trial_settings": {
+          "end_behavior": {
+            "billing_cycle_anchor": "now",
+            "missing_payment_method": "create_invoice"
+          }
+        },
+        "trial_start": null
+      },
+      "previous_attributes": {
+        "items": {
+          "data": [
+            {
+              "id": "si_VPd8MjeoIlsKaH",
+              "object": "subscription_item",
+              "billing_thresholds": null,
+              "created": 1791591072,
+              "current_period_end": 1794269472,
+              "current_period_start": 1791591072,
+              "current_trial": null,
+              "discounts": [],
+              "metadata": {},
+              "plan": {
+                "id": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "object": "plan",
+                "active": true,
+                "amount": 125000,
+                "amount_decimal": "125000",
+                "billing_scheme": "per_unit",
+                "created": 1791591073,
+                "currency": "usd",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": false,
+                "metadata": {},
+                "meter": null,
+                "nickname": null,
+                "product": "prod_VPd8Dm7A4kzqSE",
+                "tiers_mode": null,
+                "transform_usage": null,
+                "trial_period_days": null,
+                "usage_type": "licensed"
+              },
+              "price": {
+                "id": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "object": "price",
+                "active": true,
+                "billing_scheme": "per_unit",
+                "created": 1791591073,
+                "currency": "usd",
+                "custom_unit_amount": null,
+                "livemode": false,
+                "lookup_key": null,
+                "metadata": {},
+                "nickname": null,
+                "product": "prod_VPd8Dm7A4kzqSE",
+                "recurring": {
+                  "interval": "month",
+                  "interval_count": 1,
+                  "meter": null,
+                  "trial_period_days": null,
+                  "usage_type": "licensed"
+                },
+                "tax_behavior": "unspecified",
+                "tiers_mode": null,
+                "transform_quantity": null,
+                "type": "recurring",
+                "unit_amount": 125000,
+                "unit_amount_decimal": "125000"
+              },
+              "quantity": 1,
+              "subscription": "sub_1UOnscQwBWCeA1acAlMyCnNx",
+              "tax_rates": []
+            }
+          ]
+        },
+        "latest_invoice": "in_1UOnscQwBWCeA1acrppxJ0kW"
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 0,
+    "request": {
+      "id": null,
+      "idempotency_key": null
+    },
+    "type": "customer.subscription.updated"
+  },
+  "invoice.payment_failed": {
+    "id": "evt_1UOnshQwBWCeA1acgh3E2p2J",
+    "object": "event",
+    "api_version": "2026-09-30.endive",
+    "created": 1791591078,
+    "data": {
+      "object": {
+        "id": "in_1UOnsfQwBWCeA1acw7hSkRhW",
+        "object": "invoice",
+        "account_country": "US",
+        "account_name": "Atlanta Creative Exchange LC",
+        "account_tax_ids": null,
+        "amount_due": 125000,
+        "amount_overpaid": 0,
+        "amount_paid": 0,
+        "amount_remaining": 125000,
+        "amount_shipping": 0,
+        "application": null,
+        "attempt_count": 1,
+        "attempted": true,
+        "auto_advance": true,
+        "automatic_tax": {
+          "disabled_reason": null,
+          "enabled": false,
+          "liability": null,
+          "provider": null,
+          "status": null
+        },
+        "automatically_finalizes_at": null,
+        "billing_reason": "subscription_create",
+        "collection_method": "charge_automatically",
+        "created": 1791591072,
+        "currency": "usd",
+        "custom_fields": null,
+        "customer": "cus_VPd8R2REuHxn7A",
+        "customer_account": null,
+        "customer_address": null,
+        "customer_email": "replay-fail-1791591076447@example.com",
+        "customer_name": null,
+        "customer_phone": null,
+        "customer_shipping": null,
+        "customer_tax_exempt": "none",
+        "customer_tax_ids": [],
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "description": null,
+        "discounts": [],
+        "due_date": null,
+        "effective_at": 1791591072,
+        "ending_balance": 0,
+        "footer": null,
+        "from_invoice": null,
+        "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1UOcaAQwBWCeA1ac/test_YWNjdF8xVU9jYUFRd0JXQ2VBMWFjLF9WUGQ4SjNVYm81OGNJQ1ZtNlhsZ0dSYlcwRUh1R0M2LDE4MjEzMTg3OQ0200W9hdUrjL?s=ap",
+        "invoice_pdf": "https://pay.stripe.com/invoice/acct_1UOcaAQwBWCeA1ac/test_YWNjdF8xVU9jYUFRd0JXQ2VBMWFjLF9WUGQ4SjNVYm81OGNJQ1ZtNlhsZ0dSYlcwRUh1R0M2LDE4MjEzMTg3OQ0200W9hdUrjL/pdf?s=ap",
+        "issuer": {
+          "type": "self"
+        },
+        "last_finalization_error": null,
+        "latest_revision": null,
+        "lines": {
+          "object": "list",
+          "data": [
+            {
+              "id": "il_1UOnsaQwBWCeA1ac3qa2o6mB",
+              "object": "line_item",
+              "amount": 125000,
+              "currency": "usd",
+              "description": "1 × ACE Installment (replay) (at $1,250.00 / month)",
+              "discount_amounts": [],
+              "discountable": true,
+              "discounts": [],
+              "invoice": "in_1UOnsfQwBWCeA1acw7hSkRhW",
+              "livemode": false,
+              "metadata": {
+                "planId": "replay_fail_plan"
+              },
+              "parent": {
+                "invoice_item_details": null,
+                "subscription_item_details": {
+                  "invoice_item": null,
+                  "proration": false,
+                  "proration_details": {
+                    "credited_items": null
+                  },
+                  "subscription": "sub_1UOnsfQwBWCeA1acx1gGV8C7",
+                  "subscription_item": "si_VPd8SXDl8Vw5fW"
+                },
+                "type": "subscription_item_details"
+              },
+              "period": {
+                "end": 1794269472,
+                "start": 1791591072
+              },
+              "pretax_credit_amounts": [],
+              "pricing": {
+                "price_details": {
+                  "price": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                  "product": "prod_VPd8Dm7A4kzqSE"
+                },
+                "type": "price_details",
+                "unit_amount_decimal": "125000"
+              },
+              "quantity": 1,
+              "quantity_decimal": "1",
+              "subtotal": 125000,
+              "taxes": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/invoices/in_1UOnsfQwBWCeA1acw7hSkRhW/lines"
+        },
+        "livemode": false,
+        "metadata": {},
+        "next_payment_attempt": null,
+        "number": null,
+        "on_behalf_of": null,
+        "parent": {
+          "quote_details": null,
+          "subscription_details": {
+            "metadata": {
+              "planId": "replay_fail_plan"
+            },
+            "subscription": "sub_1UOnsfQwBWCeA1acx1gGV8C7"
+          },
+          "type": "subscription_details"
+        },
+        "payment_settings": {
+          "default_mandate": null,
+          "payment_method_options": null,
+          "payment_method_types": null
+        },
+        "period_end": 1791591072,
+        "period_start": 1791591072,
+        "post_payment_credit_notes_amount": 0,
+        "pre_payment_credit_notes_amount": 0,
+        "receipt_number": null,
+        "rendering": null,
+        "shipping_cost": null,
+        "shipping_details": null,
+        "starting_balance": 0,
+        "statement_descriptor": null,
+        "status": "open",
+        "status_transitions": {
+          "finalized_at": 1791591072,
+          "marked_uncollectible_at": null,
+          "paid_at": null,
+          "voided_at": null
+        },
+        "subtotal": 125000,
+        "subtotal_excluding_tax": 125000,
+        "test_clock": "clock_1UOnsaQwBWCeA1acdyXbcf61",
+        "total": 125000,
+        "total_discount_amounts": [],
+        "total_excluding_tax": 125000,
+        "total_pretax_credit_amounts": [],
+        "total_taxes": [],
+        "webhooks_delivered_at": 1791591072
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 0,
+    "request": {
+      "id": "req_zyBsd1fiL5gwfl",
+      "idempotency_key": "405e6197-a63a-45ca-bc00-ceab51da6b48"
+    },
+    "type": "invoice.payment_failed"
+  },
+  "invoice.paid.down_payment": {
+    "id": "evt_1UOnbQQwBWCeA1acdr471AeO",
+    "object": "event",
+    "api_version": "2026-09-30.endive",
+    "created": 1791590008,
+    "data": {
+      "object": {
+        "id": "in_1UOnbPQwBWCeA1ac8uM5HKHP",
+        "object": "invoice",
+        "account_country": "US",
+        "account_name": "Atlanta Creative Exchange LC",
+        "account_tax_ids": null,
+        "amount_due": 0,
+        "amount_overpaid": 0,
+        "amount_paid": 0,
+        "amount_remaining": 0,
+        "amount_shipping": 0,
+        "application": null,
+        "attempt_count": 0,
+        "attempted": true,
+        "auto_advance": false,
+        "automatic_tax": {
+          "disabled_reason": null,
+          "enabled": false,
+          "liability": null,
+          "provider": null,
+          "status": null
+        },
+        "automatically_finalizes_at": null,
+        "billing_reason": "manual",
+        "collection_method": "send_invoice",
+        "created": 1791590007,
+        "currency": "usd",
+        "custom_fields": null,
+        "customer": "cus_VPcrHnHraHsgKx",
+        "customer_account": null,
+        "customer_address": null,
+        "customer_email": "probe-b-1791590006668@example.com",
+        "customer_name": "Probe B",
+        "customer_phone": null,
+        "customer_shipping": null,
+        "customer_tax_exempt": "none",
+        "customer_tax_ids": [],
+        "default_payment_method": null,
+        "default_source": null,
+        "default_tax_rates": [],
+        "description": null,
+        "discounts": [],
+        "due_date": 1794182007,
+        "effective_at": 1791590007,
+        "ending_balance": 0,
+        "footer": null,
+        "from_invoice": null,
+        "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1UOcaAQwBWCeA1ac/test_YWNjdF8xVU9jYUFRd0JXQ2VBMWFjLF9WUGNyenpDeXhKUVkxNWRGWEdBQTdVb0t5SWFteG91LDE4MjEzMDgwOA0200sX79lXfR?s=ap",
+        "invoice_pdf": "https://pay.stripe.com/invoice/acct_1UOcaAQwBWCeA1ac/test_YWNjdF8xVU9jYUFRd0JXQ2VBMWFjLF9WUGNyenpDeXhKUVkxNWRGWEdBQTdVb0t5SWFteG91LDE4MjEzMDgwOA0200sX79lXfR/pdf?s=ap",
+        "issuer": {
+          "type": "self"
+        },
+        "last_finalization_error": null,
+        "latest_revision": null,
+        "lines": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/invoices/in_1UOnbPQwBWCeA1ac8uM5HKHP/lines"
+        },
+        "livemode": false,
+        "metadata": {
+          "kind": "down_payment",
+          "planId": "probe_plan_b",
+          "planItemId": "probe_item_b"
+        },
+        "next_payment_attempt": null,
+        "number": "ODOLP8PG-0001",
+        "on_behalf_of": null,
+        "parent": null,
+        "payment_settings": {
+          "default_mandate": null,
+          "payment_method_options": null,
+          "payment_method_types": null
+        },
+        "period_end": 1791590007,
+        "period_start": 1791590007,
+        "post_payment_credit_notes_amount": 0,
+        "pre_payment_credit_notes_amount": 0,
+        "receipt_number": null,
+        "rendering": {
+          "amount_tax_display": null,
+          "pdf": {
+            "page_size": "letter"
+          },
+          "template": null,
+          "template_version": null
+        },
+        "shipping_cost": null,
+        "shipping_details": null,
+        "starting_balance": 0,
+        "statement_descriptor": null,
+        "status": "paid",
+        "status_transitions": {
+          "finalized_at": 1791590007,
+          "marked_uncollectible_at": null,
+          "paid_at": 1791590007,
+          "voided_at": null
+        },
+        "subtotal": 0,
+        "subtotal_excluding_tax": 0,
+        "test_clock": null,
+        "total": 0,
+        "total_discount_amounts": [],
+        "total_excluding_tax": 0,
+        "total_pretax_credit_amounts": [],
+        "total_taxes": [],
+        "webhooks_delivered_at": 1791590007
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 0,
+    "request": {
+      "id": "req_i13zNuuODly1vZ",
+      "idempotency_key": "167c0d37-dc6f-41f3-8776-4664a3a81430"
+    },
+    "type": "invoice.paid"
+  },
+  "subscription_schedule.updated": {
+    "id": "evt_1UOnscQwBWCeA1acOePCthke",
+    "object": "event",
+    "api_version": "2026-09-30.endive",
+    "created": 1791591074,
+    "data": {
+      "object": {
+        "id": "sub_sched_1UOnscQwBWCeA1acGloGQMR2",
+        "object": "subscription_schedule",
+        "application": null,
+        "billing_mode": {
+          "flexible": {
+            "proration_discounts": "included"
+          },
+          "type": "flexible",
+          "updated_at": 1791591072
+        },
+        "canceled_at": null,
+        "completed_at": null,
+        "created": 1791591072,
+        "current_phase": {
+          "end_date": 1886285472,
+          "start_date": 1791591072
+        },
+        "customer": "cus_VPd8D0pHkp2tKE",
+        "customer_account": null,
+        "default_settings": {
+          "application_fee_percent": null,
+          "automatic_tax": {
+            "disabled_reason": null,
+            "enabled": false,
+            "liability": null
+          },
+          "billing_cycle_anchor": "automatic",
+          "billing_thresholds": null,
+          "collection_method": "charge_automatically",
+          "default_payment_method": null,
+          "default_source": null,
+          "description": null,
+          "invoice_settings": {
+            "account_tax_ids": null,
+            "custom_fields": null,
+            "days_until_due": null,
+            "description": null,
+            "footer": null,
+            "issuer": {
+              "type": "self"
+            }
+          },
+          "on_behalf_of": null,
+          "transfer_data": null
+        },
+        "end_behavior": "cancel",
+        "livemode": false,
+        "metadata": {
+          "kind": "installment",
+          "planId": "replay_plan"
+        },
+        "pause_schedules": [],
+        "phases": [
+          {
+            "add_invoice_items": [],
+            "application_fee_percent": null,
+            "billing_cycle_anchor": null,
+            "billing_thresholds": null,
+            "collection_method": null,
+            "currency": "usd",
+            "default_payment_method": null,
+            "default_tax_rates": [],
+            "description": null,
+            "discounts": [],
+            "end_date": 1886285472,
+            "invoice_settings": null,
+            "items": [
+              {
+                "billing_thresholds": null,
+                "discounts": [],
+                "metadata": {},
+                "plan": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "price": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "quantity": 1,
+                "tax_rates": []
+              }
+            ],
+            "metadata": {
+              "kind": "installment",
+              "planId": "replay_plan"
+            },
+            "on_behalf_of": null,
+            "proration_behavior": "create_prorations",
+            "start_date": 1791591072,
+            "transfer_data": null,
+            "trial_end": null
+          }
+        ],
+        "released_at": null,
+        "released_subscription": null,
+        "renewal_interval": null,
+        "status": "active",
+        "subscription": "sub_1UOnscQwBWCeA1acAlMyCnNx",
+        "test_clock": "clock_1UOnsaQwBWCeA1acdyXbcf61"
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 0,
+    "request": {
+      "id": "req_wYLuKvJLOjdYyW",
+      "idempotency_key": "e91caee5-516b-4a81-b294-4aac9be413a6"
+    },
+    "type": "subscription_schedule.created"
+  },
+  "subscription_schedule.withSubscription": {
+    "id": "evt_1UOnscQwBWCeA1acOePCthke",
+    "object": "event",
+    "api_version": "2026-09-30.endive",
+    "created": 1791591074,
+    "data": {
+      "object": {
+        "id": "sub_sched_1UOnscQwBWCeA1acGloGQMR2",
+        "object": "subscription_schedule",
+        "application": null,
+        "billing_mode": {
+          "flexible": {
+            "proration_discounts": "included"
+          },
+          "type": "flexible",
+          "updated_at": 1791591072
+        },
+        "canceled_at": null,
+        "completed_at": null,
+        "created": 1791591072,
+        "current_phase": {
+          "end_date": 1886285472,
+          "start_date": 1791591072
+        },
+        "customer": "cus_VPd8D0pHkp2tKE",
+        "customer_account": null,
+        "default_settings": {
+          "application_fee_percent": null,
+          "automatic_tax": {
+            "disabled_reason": null,
+            "enabled": false,
+            "liability": null
+          },
+          "billing_cycle_anchor": "automatic",
+          "billing_thresholds": null,
+          "collection_method": "charge_automatically",
+          "default_payment_method": null,
+          "default_source": null,
+          "description": null,
+          "invoice_settings": {
+            "account_tax_ids": null,
+            "custom_fields": null,
+            "days_until_due": null,
+            "description": null,
+            "footer": null,
+            "issuer": {
+              "type": "self"
+            }
+          },
+          "on_behalf_of": null,
+          "transfer_data": null
+        },
+        "end_behavior": "cancel",
+        "livemode": false,
+        "metadata": {
+          "kind": "installment",
+          "planId": "replay_plan"
+        },
+        "pause_schedules": [],
+        "phases": [
+          {
+            "add_invoice_items": [],
+            "application_fee_percent": null,
+            "billing_cycle_anchor": null,
+            "billing_thresholds": null,
+            "collection_method": null,
+            "currency": "usd",
+            "default_payment_method": null,
+            "default_tax_rates": [],
+            "description": null,
+            "discounts": [],
+            "end_date": 1886285472,
+            "invoice_settings": null,
+            "items": [
+              {
+                "billing_thresholds": null,
+                "discounts": [],
+                "metadata": {},
+                "plan": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "price": "price_1UOnsbQwBWCeA1acLekHy8Ps",
+                "quantity": 1,
+                "tax_rates": []
+              }
+            ],
+            "metadata": {
+              "kind": "installment",
+              "planId": "replay_plan"
+            },
+            "on_behalf_of": null,
+            "proration_behavior": "create_prorations",
+            "start_date": 1791591072,
+            "transfer_data": null,
+            "trial_end": null
+          }
+        ],
+        "released_at": null,
+        "released_subscription": null,
+        "renewal_interval": null,
+        "status": "active",
+        "subscription": "sub_1UOnscQwBWCeA1acAlMyCnNx",
+        "test_clock": "clock_1UOnsaQwBWCeA1acdyXbcf61"
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 0,
+    "request": {
+      "id": "req_wYLuKvJLOjdYyW",
+      "idempotency_key": "e91caee5-516b-4a81-b294-4aac9be413a6"
+    },
+    "type": "subscription_schedule.created"
+  }
+}
